@@ -1,0 +1,150 @@
+
+import 'package:clinic_management_system/helper/initialize_hive.dart';
+import 'package:clinic_management_system/ui/LoginPage/ui/login_page.dart';
+import 'package:clinic_management_system/ui/ScheduleGridPade/ui/schedule_grid_pade.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
+class HomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        // Modern Color Scheme: Teal as primary, Light Green as secondary
+        primaryColor: const Color(0xFF00796B), // Teal
+        primaryColorDark: const Color(0xFF004D40), // Darker Teal for accents
+        primaryColorLight: const Color(0xFF4DB6AC), // Lighter Teal
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: MaterialColor(0xFF00796B, <int, Color>{
+            50: Color(0xFFE0F2F1),
+            100: Color(0xFFB2DFDB),
+            200: Color(0xFF80CBC4),
+            300: Color(0xFF4DB6AC),
+            400: Color(0xFF26A69A),
+            500: Color(0xFF009688), // Primary Teal
+            600: Color(0xFF00897B),
+            700: Color(0xFF00796B),
+            800: Color(0xFF00695C),
+            900: Color(0xFF004D40),
+          }),
+        ).copyWith(
+          secondary: const Color(0xFF4CAF50), // Light Green for success/accent
+          error: Colors.redAccent, // Red for errors
+        ),
+        scaffoldBackgroundColor: const Color(
+          0xFFFAFAFA,
+        ), // Light gray background
+        appBarTheme: AppBarTheme(
+          backgroundColor: const Color(0xFF00796B), // Teal app bar
+          foregroundColor: Colors.white, // White text on app bar
+          elevation: 4, // Subtle shadow
+          titleTextStyle: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        cardTheme: CardTheme(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12), // Rounded card corners
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF00796B), // Teal for text buttons
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Color(0xFFB2DFDB)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Color(0xFF00796B), width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Color(0xFFB2DFDB)),
+          ),
+          labelStyle: TextStyle(color: Color(0xFF004D40)),
+          floatingLabelStyle: TextStyle(color: Color(0xFF00796B)),
+        ),
+        textTheme: TextTheme(
+          headlineLarge: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF004D40),
+          ),
+          headlineMedium: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF004D40),
+          ),
+          headlineSmall: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF004D40),
+          ),
+          bodyLarge: TextStyle(fontSize: 16, color: Colors.black87),
+          bodyMedium: TextStyle(fontSize: 14, color: Colors.black87),
+          labelLarge: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ), // For button text
+        ),
+      ),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, authSnapshot) {
+          if (authSnapshot.connectionState == ConnectionState.waiting) {
+            return Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ); // Loading state
+          }
+
+          if (authSnapshot.hasData && authSnapshot.data != null) {
+            // User is logged in, ensure Hive is initialized
+            return FutureBuilder(
+              future: initializeHive(),
+              builder: (context, hiveSnapshot) {
+                if (hiveSnapshot.connectionState == ConnectionState.done) {
+                  if (hiveSnapshot.hasError) {
+                    // Professional Error Handling: Display error if Hive fails
+                    return Scaffold(
+                      body: Center(
+                        child: Text(
+                          'Error initializing local data: ${hiveSnapshot.error}',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    );
+                  }
+                  // Pass the authenticated user to ScheduleGridScreen
+                  final User? user = authSnapshot.data;
+                  return ScheduleGridScreen(user: user!);
+                }
+                return Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                ); // Loading Hive
+              },
+            );
+          }
+          return LoginScreen();
+        },
+      ),
+    );
+  }
+}
