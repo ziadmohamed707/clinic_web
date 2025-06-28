@@ -1,9 +1,9 @@
 // lib/domain/usecases/cancel_appointment.dart
-import 'package:clinic_management_system/domain/entities/appointment.dart';
-import 'package:clinic_management_system/domain/entities/client.dart';
-import 'package:clinic_management_system/domain/entities/client_package.dart';
-import 'package:clinic_management_system/domain/repositories/appointment_repository.dart';
-import 'package:clinic_management_system/domain/repositories/client_repository.dart';
+import 'package:physioprime/domain/entities/appointment.dart';
+import 'package:physioprime/domain/entities/client.dart';
+import 'package:physioprime/domain/entities/client_package.dart';
+import 'package:physioprime/domain/repositories/appointment_repository.dart';
+import 'package:physioprime/domain/repositories/client_repository.dart';
 import 'package:equatable/equatable.dart';
 
 class CancelAppointment {
@@ -14,10 +14,14 @@ class CancelAppointment {
 
   Future<void> call(CancelAppointmentParams params) async {
     // First, retrieve the existing appointment to get full details
-    final existingAppointment = await appointmentRepository.getAppointment(params.appointmentId);
+    final existingAppointment = await appointmentRepository.getAppointment(
+      params.appointmentId,
+    );
 
     if (existingAppointment != null) {
-      final cancelledAppointment = existingAppointment.copyWith(status: AppointmentStatus.cancelled);
+      final cancelledAppointment = existingAppointment.copyWith(
+        status: AppointmentStatus.cancelled,
+      );
       await appointmentRepository.saveAppointment(cancelledAppointment);
 
       // If it was a follow-up, increment session count back
@@ -26,21 +30,25 @@ class CancelAppointment {
           params.packageNameUsed != null) {
         final client = await clientRepository.getClient(params.clientId);
         if (client != null) {
-          final updatedPackages = client.bookedPackages.map((pkg) {
-            if (pkg.name == params.packageNameUsed && pkg.remainingSessions < pkg.totalSessions) {
-              return pkg.copyWith(remainingSessions: pkg.remainingSessions + 1);
-            }
-            return pkg;
-          }).toList();
-          await clientRepository.updateClient(client.copyWith(bookedPackages: updatedPackages));
+          final updatedPackages =
+              client.bookedPackages.map((pkg) {
+                if (pkg.name == params.packageNameUsed &&
+                    pkg.remainingSessions < pkg.totalSessions) {
+                  return pkg.copyWith(
+                    remainingSessions: pkg.remainingSessions + 1,
+                  );
+                }
+                return pkg;
+              }).toList();
+          await clientRepository.updateClient(
+            client.copyWith(bookedPackages: updatedPackages),
+          );
         }
       }
     } else {
       throw Exception('Appointment not found for cancellation.');
     }
   }
-
-  
 }
 
 class CancelAppointmentParams extends Equatable {
@@ -66,13 +74,13 @@ class CancelAppointmentParams extends Equatable {
 
   @override
   List<Object?> get props => [
-        appointmentId,
-        patientName,
-        patientPhone,
-        doctorName,
-        clientId,
-        serviceType,
-        packageNameUsed,
-        packageCategoryUsed,
-      ];
+    appointmentId,
+    patientName,
+    patientPhone,
+    doctorName,
+    clientId,
+    serviceType,
+    packageNameUsed,
+    packageCategoryUsed,
+  ];
 }

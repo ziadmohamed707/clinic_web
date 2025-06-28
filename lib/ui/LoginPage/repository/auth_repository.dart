@@ -1,7 +1,7 @@
 // lib/ui/LoginPage/repository/auth_repository.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:clinic_management_system/ui/LoginPage/models/user_model.dart'; // Import your UserModel
+import 'package:physioprime/ui/LoginPage/models/user_model.dart'; // Import your UserModel
 import 'package:uuid/uuid.dart';
 import 'package:hive/hive.dart'; // Import Hive
 import 'package:rxdart/rxdart.dart';
@@ -32,6 +32,7 @@ class AuthRepository {
   Future<UserModel> signIn({
     required String username,
     required String password,
+    bool keepLoggedIn = true,
   }) async {
     final querySnapshot =
         await _firestore
@@ -47,9 +48,13 @@ class AuthRepository {
 
     final userDoc = querySnapshot.docs.first;
     final userModel = UserModel.fromMap(userDoc.data());
-    _currentUserController.add(
-      userModel,
-    ); // Notify listeners of successful login
+    _currentUserController.add(userModel);
+    if (keepLoggedIn) {
+      await saveUserSession(userModel); // ← فقط لو اختار المستخدم ذلك
+    } else {
+      await clearUserSession();
+    }
+    // Notify listeners of successful login
     return userModel;
   }
 
@@ -85,7 +90,9 @@ class AuthRepository {
         .doc(newUserData['id'])
         .set(newUserData);
     final userModel = UserModel.fromMap(newUserData);
-    _currentUserController.add(userModel); // Notify listeners of successful registration
+    _currentUserController.add(
+      userModel,
+    ); // Notify listeners of successful registration
     return userModel;
   }
 
@@ -180,8 +187,14 @@ class AuthRepository {
 
   /// Initializes app-specific data, such as Hive.
   Future<void> initializeAppData() async {
-    // This method is now less critical for Hive initialization as it's done in main.dart.
-    // It can be kept for other future initializations or removed if not needed.
+    final userData = Hive.box('userSession').get('currentUser');
+    if (userData != null && userData is Map<dynamic, dynamic>) {
+      final user = UserModel.fromMap(Map<String, dynamic>.from(userData));
+      _currentUserController.add(user);
+      print('Session loaded from Hive: ${user.username}');
+    } else {
+      print('No saved session found.');
+    }
   }
 }
 
@@ -221,7 +234,7 @@ class AuthRepository {
 // import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
 // import 'package:hive/hive.dart';
-// import 'package:clinic_management_system/helper/initialize_hive.dart'; // Assuming this helper exists
+// import 'package:physioprime/helper/initialize_hive.dart'; // Assuming this helper exists
 
 // class AuthRepository {
 //   final FirebaseAuth _firebaseAuth;

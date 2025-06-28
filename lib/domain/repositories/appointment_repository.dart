@@ -1,5 +1,5 @@
 // lib/domain/repositories/appointment_repository.dart
-import 'package:clinic_management_system/domain/entities/appointment.dart';
+import 'package:physioprime/domain/entities/appointment.dart';
 
 abstract class AppointmentRepository {
   Future<void> saveAppointment(Appointment appointment);

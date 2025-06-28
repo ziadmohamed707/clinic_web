@@ -1,10 +1,10 @@
 // lib/ui/manage_users_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:clinic_management_system/ui/ManageUserPage/bloc/manage_users_bloc.dart';
-import 'package:clinic_management_system/ui/ManageUserPage/bloc/manage_users_event.dart';
-import 'package:clinic_management_system/ui/ManageUserPage/bloc/manage_users_state.dart';
-import 'package:clinic_management_system/ui/ManageUserPage/repository/user_repository.dart';
+import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_bloc.dart';
+import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_event.dart';
+import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_state.dart';
+import 'package:physioprime/ui/ManageUserPage/repository/user_repository.dart';
 
 class ManageUsersPage extends StatelessWidget {
   const ManageUsersPage({Key? key}) : super(key: key);
@@ -12,17 +12,21 @@ class ManageUsersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => ManageUsersBloc(userRepository: UserRepository())..add(LoadUsers()),
+      create:
+          (context) =>
+              ManageUsersBloc(userRepository: UserRepository())
+                ..add(LoadUsers()),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Manage Users'),
           actions: [
             Builder(
-              builder: (innerContext) => IconButton(
-                icon: const Icon(Icons.add_circle_outline),
-                onPressed: () => _showAddUserDialog(innerContext),
-                tooltip: 'Add New User',
-              ),
+              builder:
+                  (innerContext) => IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => _showAddUserDialog(innerContext),
+                    tooltip: 'Add New User',
+                  ),
             ),
           ],
         ),
@@ -87,7 +91,10 @@ class ManageUsersPage extends StatelessWidget {
     );
   }
 
-  Widget _buildUserList(BuildContext context, List<Map<String, dynamic>> users) {
+  Widget _buildUserList(
+    BuildContext context,
+    List<Map<String, dynamic>> users,
+  ) {
     return RefreshIndicator(
       onRefresh: () async {
         context.read<ManageUsersBloc>().add(LoadUsers());
@@ -110,9 +117,7 @@ class ManageUsersPage extends StatelessWidget {
                 userName,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              subtitle: Text(
-                'Role: ${userRole.toUpperCase()}',
-              ),
+              subtitle: Text('Role: ${userRole.toUpperCase()}'),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -121,7 +126,8 @@ class ManageUsersPage extends StatelessWidget {
                       Icons.edit_outlined,
                       color: Theme.of(context).primaryColor,
                     ),
-                    onPressed: () => _showAddUserDialog(context, userToEdit: user),
+                    onPressed:
+                        () => _showAddUserDialog(context, userToEdit: user),
                     tooltip: 'Edit user',
                   ),
                   IconButton(
@@ -141,7 +147,10 @@ class ManageUsersPage extends StatelessWidget {
     );
   }
 
-  void _showAddUserDialog(BuildContext context, {Map<String, dynamic>? userToEdit}) {
+  void _showAddUserDialog(
+    BuildContext context, {
+    Map<String, dynamic>? userToEdit,
+  }) {
     final bloc = BlocProvider.of<ManageUsersBloc>(context);
     showDialog(
       context: context,
@@ -157,23 +166,24 @@ class ManageUsersPage extends StatelessWidget {
   Future<void> _deleteUser(BuildContext context, String userId) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete User?'),
-        content: const Text('This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete User?'),
+            content: const Text('This action cannot be undone.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
     );
 
     if (confirmed == true) {
@@ -309,15 +319,18 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
                   labelText: 'Role',
                   border: OutlineInputBorder(),
                 ),
-                items: _availableRoles
-                    .map((role) => DropdownMenuItem(
-                          value: role,
-                          child: Text(role.toUpperCase()),
-                        ))
-                    .toList(),
+                items:
+                    _availableRoles
+                        .map(
+                          (role) => DropdownMenuItem(
+                            value: role,
+                            child: Text(role.toUpperCase()),
+                          ),
+                        )
+                        .toList(),
                 onChanged: (value) => setState(() => _selectedRole = value),
-                validator: (value) =>
-                    value == null ? 'Please select a role' : null,
+                validator:
+                    (value) => value == null ? 'Please select a role' : null,
               ),
             ],
           ),
@@ -342,9 +355,9 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
 
 
 // // lib/ui/manage_users_page.dart
-// import 'package:clinic_management_system/ui/ManageUserPage/bloc/manage_users_bloc.dart';
-// import 'package:clinic_management_system/ui/ManageUserPage/bloc/manage_users_event.dart';
-// import 'package:clinic_management_system/ui/ManageUserPage/bloc/manage_users_state.dart';
+// import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_bloc.dart';
+// import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_event.dart';
+// import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_state.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter_bloc/flutter_bloc.dart';
 

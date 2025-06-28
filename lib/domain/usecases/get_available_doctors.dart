@@ -1,6 +1,6 @@
 // lib/domain/usecases/get_available_doctors.dart
-import 'package:clinic_management_system/domain/entities/doctor.dart';
-import 'package:clinic_management_system/domain/repositories/doctor_repository.dart';
+import 'package:physioprime/domain/entities/doctor.dart';
+import 'package:physioprime/domain/repositories/doctor_repository.dart';
 
 class GetAvailableDoctors {
   final DoctorRepository repository;

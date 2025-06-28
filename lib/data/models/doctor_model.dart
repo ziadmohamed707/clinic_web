@@ -1,5 +1,5 @@
 // lib/data/models/doctor_model.dart
-import 'package:clinic_management_system/domain/entities/doctor.dart';
+import 'package:physioprime/domain/entities/doctor.dart';
 
 class DoctorModel {
   final String id;
@@ -16,7 +16,8 @@ class DoctorModel {
     return DoctorModel(
       id: id,
       name: map['name'] ?? '',
-      availableDays: (map['availableDays'] as List<dynamic>?)
+      availableDays:
+          (map['availableDays'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -24,10 +25,7 @@ class DoctorModel {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'availableDays': availableDays,
-    };
+    return {'name': name, 'availableDays': availableDays};
   }
 
   factory DoctorModel.fromEntity(Doctor entity) {
@@ -39,10 +37,6 @@ class DoctorModel {
   }
 
   Doctor toEntity() {
-    return Doctor(
-      id: id,
-      name: name,
-      availableDays: availableDays,
-    );
+    return Doctor(id: id, name: name, availableDays: availableDays);
   }
 }

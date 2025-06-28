@@ -1,7 +1,7 @@
 // lib/data/models/appointment_model.dart
-import 'package:clinic_management_system/domain/entities/appointment.dart';
-import 'package:clinic_management_system/domain/entities/client.dart';
-import 'package:clinic_management_system/domain/entities/doctor.dart';
+import 'package:physioprime/domain/entities/appointment.dart';
+import 'package:physioprime/domain/entities/client.dart';
+import 'package:physioprime/domain/entities/doctor.dart';
 
 class AppointmentModel {
   final String id;
@@ -36,9 +36,11 @@ class AppointmentModel {
       patientName: map['patient'] ?? '',
       doctorName: map['doctor'] ?? '',
       timeSlot: map['timeSlot'] ?? '',
-      date: (map['date'] is String)
-          ? DateTime.parse(map['date'])
-          : (map['date']?.toDate() ?? DateTime.now()), // For Firestore Timestamp
+      date:
+          (map['date'] is String)
+              ? DateTime.parse(map['date'])
+              : (map['date']?.toDate() ??
+                  DateTime.now()), // For Firestore Timestamp
       phoneNumber: map['phone'],
       clientId: map['clientId'],
       status: map['status'] ?? 'booked',
@@ -73,8 +75,11 @@ class AppointmentModel {
       date: entity.date,
       phoneNumber: entity.phoneNumber,
       clientId: entity.clientId,
-      status: entity.status.toString().split('.').last, // Convert enum to string
-      serviceType: serviceTypeToString(entity.serviceType), // Convert enum to string
+      status:
+          entity.status.toString().split('.').last, // Convert enum to string
+      serviceType: serviceTypeToString(
+        entity.serviceType,
+      ), // Convert enum to string
       packageNameUsed: entity.packageNameUsed,
       packageCategoryUsed: entity.packageCategoryUsed,
     );

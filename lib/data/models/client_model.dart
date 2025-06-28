@@ -1,6 +1,6 @@
 // lib/data/models/client_model.dart
-import 'package:clinic_management_system/domain/entities/client.dart';
-import 'package:clinic_management_system/data/models/client_package_model.dart';
+import 'package:physioprime/domain/entities/client.dart';
+import 'package:physioprime/data/models/client_package_model.dart';
 
 class ClientModel {
   final int id;
@@ -25,9 +25,15 @@ class ClientModel {
       name: map['name'] ?? '',
       age: map['age'] ?? 0, // Defaulting to 0 if age is not provided
       phoneNumber: map['phone'] ?? '',
-      details: map['details'] ?? '', // Optional field for additional information
-      bookedPackages: (map['bookedPackages'] as List<dynamic>?)
-              ?.map((pkgMap) => ClientPackageModel.fromMap(Map<String, dynamic>.from(pkgMap)))
+      details:
+          map['details'] ?? '', // Optional field for additional information
+      bookedPackages:
+          (map['bookedPackages'] as List<dynamic>?)
+              ?.map(
+                (pkgMap) => ClientPackageModel.fromMap(
+                  Map<String, dynamic>.from(pkgMap),
+                ),
+              )
               .toList() ??
           [],
     );
@@ -49,9 +55,12 @@ class ClientModel {
       name: entity.name,
       age: entity.age, // Assuming age is an integer
       phoneNumber: entity.phoneNumber,
-      details: entity.details ?? '', // Optional field for additional information
+      details:
+          entity.details ?? '', // Optional field for additional information
       bookedPackages:
-          entity.bookedPackages.map((e) => ClientPackageModel.fromEntity(e)).toList(),
+          entity.bookedPackages
+              .map((e) => ClientPackageModel.fromEntity(e))
+              .toList(),
     );
   }
 

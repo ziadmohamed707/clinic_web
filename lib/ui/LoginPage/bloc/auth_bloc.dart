@@ -1,9 +1,9 @@
 // lib/ui/LoginPage/bloc/auth_bloc.dart
 import 'package:bloc/bloc.dart';
-import 'package:clinic_management_system/ui/LoginPage/bloc/auth_event.dart';
-import 'package:clinic_management_system/ui/LoginPage/bloc/auth_state.dart';
-import 'package:clinic_management_system/ui/LoginPage/models/user_model.dart';
-import 'package:clinic_management_system/ui/LoginPage/repository/auth_repository.dart';
+import 'package:physioprime/ui/LoginPage/bloc/auth_event.dart';
+import 'package:physioprime/ui/LoginPage/bloc/auth_state.dart';
+import 'package:physioprime/ui/LoginPage/models/user_model.dart';
+import 'package:physioprime/ui/LoginPage/repository/auth_repository.dart';
 import 'dart:async'; // Import for StreamSubscription
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -115,9 +115,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       // Given your repository's signIn method already calls saveUserSession,
       // the `event.keepLoggedIn` implies whether to *continue* persisting for future runs.
       // For a Firestore-only + Hive model, `saveUserSession` usually handles persistence.
-      if (!event.keepLoggedIn) {
-        await _authRepository.clearUserSession();
-      }
     } catch (e) {
       // Only emit error state if the login operation itself fails
       emit(

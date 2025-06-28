@@ -1,7 +1,7 @@
-import 'package:clinic_management_system/helper/initialize_hive.dart';
-import 'package:clinic_management_system/ui/LoginPage/bloc/auth_bloc.dart';
-import 'package:clinic_management_system/ui/LoginPage/models/user_model.dart';
-import 'package:clinic_management_system/ui/ScheduleGridPade/ui/schedule_grid_pade.dart';
+import 'package:physioprime/helper/initialize_hive.dart';
+import 'package:physioprime/ui/LoginPage/bloc/auth_bloc.dart';
+import 'package:physioprime/ui/LoginPage/models/user_model.dart';
+import 'package:physioprime/ui/ScheduleGridPade/ui/schedule_grid_pade.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

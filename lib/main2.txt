@@ -1,11 +1,11 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
-import 'package:clinic_management_system/ui/add_client_page.dart';
-import 'package:clinic_management_system/ui/client_list_page.dart';
-import 'package:clinic_management_system/ui/manage_doctors_page.dart'; // Add this
-import 'package:clinic_management_system/ui/financial_management_page.dart';
-import 'package:clinic_management_system/ui/packages_page.dart';
-import 'package:clinic_management_system/widgets/state_card.dart';
+import 'package:physioprime/ui/add_client_page.dart';
+import 'package:physioprime/ui/client_list_page.dart';
+import 'package:physioprime/ui/manage_doctors_page.dart'; // Add this
+import 'package:physioprime/ui/financial_management_page.dart';
+import 'package:physioprime/ui/packages_page.dart';
+import 'package:physioprime/widgets/state_card.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

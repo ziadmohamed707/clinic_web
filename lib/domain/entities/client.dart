@@ -1,5 +1,5 @@
 // lib/domain/entities/client.dart
-import 'package:clinic_management_system/domain/entities/client_package.dart';
+import 'package:physioprime/domain/entities/client_package.dart';
 import 'package:equatable/equatable.dart';
 
 class Client extends Equatable {
@@ -20,7 +20,14 @@ class Client extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, name, age,phoneNumber, details, bookedPackages];
+  List<Object?> get props => [
+    id,
+    name,
+    age,
+    phoneNumber,
+    details,
+    bookedPackages,
+  ];
 
   Client copyWith({
     int? id,
@@ -35,7 +42,8 @@ class Client extends Equatable {
       name: name ?? this.name,
       age: age ?? this.age, // Assuming age is an integer
       phoneNumber: phoneNumber ?? this.phoneNumber,
-      details: details ?? this.details, // Optional field for additional information
+      details:
+          details ?? this.details, // Optional field for additional information
       bookedPackages: bookedPackages ?? this.bookedPackages,
     );
   }

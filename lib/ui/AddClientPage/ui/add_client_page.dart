@@ -1,4 +1,4 @@
-import 'package:clinic_management_system/ui/PackagesPage/ui/packages_page.dart';
+import 'package:physioprime/ui/PackagesPage/ui/packages_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';

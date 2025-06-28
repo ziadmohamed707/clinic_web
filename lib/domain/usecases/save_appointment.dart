@@ -1,4 +1,4 @@
-import 'package:clinic_management_system/domain/entities/client_package.dart';
+import 'package:physioprime/domain/entities/client_package.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import '../../core/errors/failures.dart';
@@ -25,14 +25,18 @@ class SaveAppointment implements UseCase<void, SaveAppointmentParams> {
           final client = await clientRepository.getClient(selectedClient.id);
           if (client == null) return const Left(ClientNotFoundFailure());
 
-          List<ClientPackage> updatedPackages = List.from(client.bookedPackages);
+          List<ClientPackage> updatedPackages = List.from(
+            client.bookedPackages,
+          );
           bool packageSessionDecremented = false;
 
           for (int i = 0; i < updatedPackages.length; i++) {
             final pkg = updatedPackages[i];
-            if (pkg.name == params.followUpPackageName && pkg.remainingSessions > 0) {
-              updatedPackages[i] =
-                  pkg.copyWith(remainingSessions: pkg.remainingSessions - 1);
+            if (pkg.name == params.followUpPackageName &&
+                pkg.remainingSessions > 0) {
+              updatedPackages[i] = pkg.copyWith(
+                remainingSessions: pkg.remainingSessions - 1,
+              );
               packageSessionDecremented = true;
               break;
             }
@@ -43,17 +47,23 @@ class SaveAppointment implements UseCase<void, SaveAppointmentParams> {
               client.copyWith(bookedPackages: updatedPackages),
             );
           } else {
-            return const Left(AppointmentConflictFailure(
-              message: 'Selected follow-up package not found or has no sessions.',
-            ));
+            return const Left(
+              AppointmentConflictFailure(
+                message:
+                    'Selected follow-up package not found or has no sessions.',
+              ),
+            );
           }
 
           await appointmentRepository.saveAppointment(params.appointment);
           return const Right(null);
         } else {
-          return const Left(AppointmentConflictFailure(
-            message: 'Follow-up package not specified for a follow-up session.',
-          ));
+          return const Left(
+            AppointmentConflictFailure(
+              message:
+                  'Follow-up package not specified for a follow-up session.',
+            ),
+          );
         }
       }
 
@@ -65,7 +75,8 @@ class SaveAppointment implements UseCase<void, SaveAppointmentParams> {
         String? targetCategory;
         final lowerService = serviceType.toLowerCase();
 
-        if (lowerService.contains('physio') || lowerService.contains('recovery')) {
+        if (lowerService.contains('physio') ||
+            lowerService.contains('recovery')) {
           targetCategory = 'Package Physio';
         } else if (lowerService.contains('machine')) {
           targetCategory = 'Package Machines';
@@ -78,8 +89,9 @@ class SaveAppointment implements UseCase<void, SaveAppointmentParams> {
           for (int i = 0; i < updatedPackages.length; i++) {
             final pkg = updatedPackages[i];
             if (pkg.category == targetCategory && pkg.remainingSessions > 0) {
-              updatedPackages[i] =
-                  pkg.copyWith(remainingSessions: pkg.remainingSessions - 1);
+              updatedPackages[i] = pkg.copyWith(
+                remainingSessions: pkg.remainingSessions - 1,
+              );
               packageFoundAndDecremented = true;
               break;
             }
@@ -90,10 +102,12 @@ class SaveAppointment implements UseCase<void, SaveAppointmentParams> {
               client.copyWith(bookedPackages: updatedPackages),
             );
           } else {
-            return const Left(AppointmentConflictFailure(
-              message:
-                  'No suitable package with remaining sessions found for this service type.',
-            ));
+            return const Left(
+              AppointmentConflictFailure(
+                message:
+                    'No suitable package with remaining sessions found for this service type.',
+              ),
+            );
           }
         }
 
@@ -124,6 +138,10 @@ class SaveAppointmentParams extends Equatable {
   });
 
   @override
-  List<Object?> get props =>
-      [appointment, selectedClient, serviceType, followUpPackageName];
+  List<Object?> get props => [
+    appointment,
+    selectedClient,
+    serviceType,
+    followUpPackageName,
+  ];
 }

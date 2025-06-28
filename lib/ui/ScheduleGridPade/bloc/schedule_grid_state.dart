@@ -1,6 +1,6 @@
-import 'package:clinic_management_system/domain/entities/appointment.dart';
-import 'package:clinic_management_system/domain/entities/client.dart';
-import 'package:clinic_management_system/domain/entities/doctor.dart';
+import 'package:physioprime/domain/entities/appointment.dart';
+import 'package:physioprime/domain/entities/client.dart';
+import 'package:physioprime/domain/entities/doctor.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class ScheduleGridState extends Equatable {
@@ -17,7 +17,8 @@ class ScheduleGridLoading extends ScheduleGridState {}
 class ScheduleGridLoaded extends ScheduleGridState {
   final DateTime selectedDate;
   final List<Doctor> availableDoctors;
-  final Map<String, Appointment> appointments; // Key: 'yyyy-MM-dd-timeSlot-doctorId'
+  final Map<String, Appointment>
+  appointments; // Key: 'yyyy-MM-dd-timeSlot-doctorId'
   final List<Client> allClients; // All clients for search and display
   final String? successMessage;
   final String? errorMessage;
@@ -25,7 +26,6 @@ class ScheduleGridLoaded extends ScheduleGridState {
   final int cancelledAppointmentsCount;
   final int totalClientsCount;
   final int availableSlotsCount;
-
 
   const ScheduleGridLoaded({
     required this.selectedDate,
@@ -59,8 +59,10 @@ class ScheduleGridLoaded extends ScheduleGridState {
       allClients: allClients ?? this.allClients,
       successMessage: successMessage,
       errorMessage: errorMessage,
-      todayAppointmentsCount: todayAppointmentsCount ?? this.todayAppointmentsCount,
-      cancelledAppointmentsCount: cancelledAppointmentsCount ?? this.cancelledAppointmentsCount,
+      todayAppointmentsCount:
+          todayAppointmentsCount ?? this.todayAppointmentsCount,
+      cancelledAppointmentsCount:
+          cancelledAppointmentsCount ?? this.cancelledAppointmentsCount,
       totalClientsCount: totalClientsCount ?? this.totalClientsCount,
       availableSlotsCount: availableSlotsCount ?? this.availableSlotsCount,
     );
@@ -68,17 +70,17 @@ class ScheduleGridLoaded extends ScheduleGridState {
 
   @override
   List<Object> get props => [
-        selectedDate,
-        availableDoctors,
-        appointments,
-        allClients,
-        todayAppointmentsCount,
-        cancelledAppointmentsCount,
-        totalClientsCount,
-        availableSlotsCount,
-        successMessage ?? '', // Include nullable fields for comparison
-        errorMessage ?? '', // Include nullable fields for comparison
-      ];
+    selectedDate,
+    availableDoctors,
+    appointments,
+    allClients,
+    todayAppointmentsCount,
+    cancelledAppointmentsCount,
+    totalClientsCount,
+    availableSlotsCount,
+    successMessage ?? '', // Include nullable fields for comparison
+    errorMessage ?? '', // Include nullable fields for comparison
+  ];
 }
 
 class ScheduleGridError extends ScheduleGridState {

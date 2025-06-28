@@ -1,5 +1,5 @@
-import 'package:clinic_management_system/domain/entities/client.dart';
-import 'package:clinic_management_system/domain/entities/client_package.dart';
+import 'package:physioprime/domain/entities/client.dart';
+import 'package:physioprime/domain/entities/client_package.dart';
 import 'package:equatable/equatable.dart';
 import '/domain/entities/appointment.dart';
 
@@ -42,7 +42,12 @@ class SaveAppointmentEvent extends ScheduleGridEvent {
   });
 
   @override
-  List<Object?> get props => [appointment, selectedClient, serviceType, followUpPackageName];
+  List<Object?> get props => [
+    appointment,
+    selectedClient,
+    serviceType,
+    followUpPackageName,
+  ];
 }
 
 class CancelAppointmentEvent extends ScheduleGridEvent {
@@ -68,15 +73,15 @@ class CancelAppointmentEvent extends ScheduleGridEvent {
 
   @override
   List<Object?> get props => [
-        appointmentId,
-        patientName,
-        patientPhone,
-        doctorName,
-        clientId,
-        serviceType,
-        packageNameUsed,
-        packageCategoryUsed,
-      ];
+    appointmentId,
+    patientName,
+    patientPhone,
+    doctorName,
+    clientId,
+    serviceType,
+    packageNameUsed,
+    packageCategoryUsed,
+  ];
 }
 
 class AddClientEvent extends ScheduleGridEvent {

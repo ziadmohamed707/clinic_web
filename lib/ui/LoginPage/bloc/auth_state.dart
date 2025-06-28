@@ -1,5 +1,5 @@
 // lib/ui/LoginPage/bloc/auth_state.dart
-import 'package:clinic_management_system/ui/LoginPage/models/user_model.dart';
+import 'package:physioprime/ui/LoginPage/models/user_model.dart';
 import 'package:equatable/equatable.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }

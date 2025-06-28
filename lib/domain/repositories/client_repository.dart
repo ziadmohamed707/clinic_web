@@ -1,6 +1,5 @@
-
 // lib/domain/repositories/client_repository.dart
-import 'package:clinic_management_system/domain/entities/client.dart';
+import 'package:physioprime/domain/entities/client.dart';
 
 abstract class ClientRepository {
   Future<void> saveClient(Client client);

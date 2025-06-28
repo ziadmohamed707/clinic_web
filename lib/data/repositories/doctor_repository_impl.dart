@@ -1,7 +1,7 @@
 // lib/data/repositories/doctor_repository_impl.dart
-import 'package:clinic_management_system/domain/entities/doctor.dart';
-import 'package:clinic_management_system/domain/repositories/doctor_repository.dart';
-import 'package:clinic_management_system/data/models/doctor_model.dart';
+import 'package:physioprime/domain/entities/doctor.dart';
+import 'package:physioprime/domain/repositories/doctor_repository.dart';
+import 'package:physioprime/data/models/doctor_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
@@ -12,7 +12,8 @@ class DoctorRepositoryImpl implements DoctorRepository {
 
   DoctorRepositoryImpl(this._firestore, this._hiveDoctorsBox);
 
-  CollectionReference get _doctorsCollection => _firestore.collection('doctors');
+  CollectionReference get _doctorsCollection =>
+      _firestore.collection('doctors');
 
   @override
   Future<List<Doctor>> getAllDoctors() async {
@@ -21,7 +22,10 @@ class DoctorRepositoryImpl implements DoctorRepository {
     _hiveDoctorsBox.values.forEach((doctorMap) {
       // Safely cast doctorMap from Hive to Map<String, dynamic>
       if (doctorMap is Map<dynamic, dynamic>) {
-        final model = DoctorModel.fromMap('id_not_used_for_hive', Map<String, dynamic>.from(doctorMap));
+        final model = DoctorModel.fromMap(
+          'id_not_used_for_hive',
+          Map<String, dynamic>.from(doctorMap),
+        );
         doctors.add(model.toEntity());
       }
     });
@@ -49,16 +53,18 @@ class DoctorRepositoryImpl implements DoctorRepository {
   Future<List<Doctor>> getAvailableDoctorsForDate(DateTime date) async {
     final String dayOfWeek = DateFormat('EEEE').format(date);
     final allDoctors = await getAllDoctors(); // Get all doctors first
-    return allDoctors.where((doctor) => doctor.availableDays.contains(dayOfWeek)).toList()
+    return allDoctors
+        .where((doctor) => doctor.availableDays.contains(dayOfWeek))
+        .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
   }
 }
 
 
 // // lib/data/repositories/doctor_repository_impl.dart
-// import 'package:clinic_management_system/domain/entities/doctor.dart';
-// import 'package:clinic_management_system/domain/repositories/doctor_repository.dart';
-// import 'package:clinic_management_system/data/models/doctor_model.dart';
+// import 'package:physioprime/domain/entities/doctor.dart';
+// import 'package:physioprime/domain/repositories/doctor_repository.dart';
+// import 'package:physioprime/data/models/doctor_model.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:intl/intl.dart';

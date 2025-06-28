@@ -1,7 +1,7 @@
 // lib/data/repositories/client_repository_impl.dart
-import 'package:clinic_management_system/domain/entities/client.dart';
-import 'package:clinic_management_system/domain/repositories/client_repository.dart';
-import 'package:clinic_management_system/data/models/client_model.dart';
+import 'package:physioprime/domain/entities/client.dart';
+import 'package:physioprime/domain/repositories/client_repository.dart';
+import 'package:physioprime/data/models/client_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -11,7 +11,8 @@ class ClientRepositoryImpl implements ClientRepository {
 
   ClientRepositoryImpl(this._firestore, this._hiveClientsBox);
 
-  CollectionReference get _clientsCollection => _firestore.collection('clients');
+  CollectionReference get _clientsCollection =>
+      _firestore.collection('clients');
 
   @override
   Future<void> saveClient(Client client) async {
@@ -33,7 +34,10 @@ class ClientRepositoryImpl implements ClientRepository {
   Future<Client?> getClient(int id) async {
     final hiveData = _hiveClientsBox.get(id.toString());
     if (hiveData != null) {
-      return ClientModel.fromMap(id, Map<String, dynamic>.from(hiveData as Map)).toEntity();
+      return ClientModel.fromMap(
+        id,
+        Map<String, dynamic>.from(hiveData as Map),
+      ).toEntity();
     }
 
     try {
@@ -57,7 +61,12 @@ class ClientRepositoryImpl implements ClientRepository {
     _hiveClientsBox.keys.where((key) => key != 'lastId').forEach((key) {
       final clientMap = _hiveClientsBox.get(key);
       if (clientMap != null) {
-        clients.add(ClientModel.fromMap(key, Map<String, dynamic>.from(clientMap as Map)).toEntity());
+        clients.add(
+          ClientModel.fromMap(
+            key,
+            Map<String, dynamic>.from(clientMap as Map),
+          ).toEntity(),
+        );
       }
     });
     return clients;
@@ -71,7 +80,10 @@ class ClientRepositoryImpl implements ClientRepository {
       try {
         final metadataDoc = await _clientsCollection.doc('metadata').get();
         if (metadataDoc.exists) {
-          lastId = (metadataDoc.data() as Map<String, dynamic>?)?['lastId'] as int? ?? 0;
+          lastId =
+              (metadataDoc.data() as Map<String, dynamic>?)?['lastId']
+                  as int? ??
+              0;
           _hiveClientsBox.put('lastId', lastId); // Cache in Hive
         }
       } catch (e) {

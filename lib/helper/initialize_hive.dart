@@ -1,4 +1,4 @@
-import 'package:clinic_management_system/utils/hive_adapters.dart';
+import 'package:physioprime/utils/hive_adapters.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 

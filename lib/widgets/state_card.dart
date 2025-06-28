@@ -20,7 +20,8 @@ class StatCard extends StatelessWidget {
       builder: (context, constraints) {
         // Determine if we're in mobile, tablet, or desktop mode
         final isDesktop = constraints.maxWidth > 600;
-        final isTablet = constraints.maxWidth > 400 && constraints.maxWidth <= 600;
+        final isTablet =
+            constraints.maxWidth > 400 && constraints.maxWidth <= 600;
         final isMobile = constraints.maxWidth <= 400;
 
         // Calculate responsive values
@@ -28,7 +29,7 @@ class StatCard extends StatelessWidget {
         final cardMargin = _getCardMargin(isDesktop);
         final iconSize = _getIconSize(isDesktop, isTablet);
         final verticalSpacing = _getVerticalSpacing(isDesktop, isTablet);
-        
+
         return Card(
           margin: cardMargin,
           color: color.withOpacity(0.1),
@@ -42,11 +43,7 @@ class StatCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(
-                  icon,
-                  size: iconSize,
-                  color: color,
-                ),
+                Icon(icon, size: iconSize, color: color),
                 SizedBox(height: verticalSpacing.small),
                 Flexible(
                   child: Text(
@@ -84,9 +81,7 @@ class StatCard extends StatelessWidget {
   }
 
   EdgeInsets _getCardMargin(bool isDesktop) {
-    return isDesktop 
-        ? const EdgeInsets.all(8.0) 
-        : const EdgeInsets.all(4.0);
+    return isDesktop ? const EdgeInsets.all(8.0) : const EdgeInsets.all(4.0);
   }
 
   double _getIconSize(bool isDesktop, bool isTablet) {
@@ -99,7 +94,10 @@ class StatCard extends StatelessWidget {
     }
   }
 
-  ({double small, double medium}) _getVerticalSpacing(bool isDesktop, bool isTablet) {
+  ({double small, double medium}) _getVerticalSpacing(
+    bool isDesktop,
+    bool isTablet,
+  ) {
     if (isDesktop) {
       return (small: 12.0, medium: 8.0);
     } else if (isTablet) {
@@ -109,9 +107,13 @@ class StatCard extends StatelessWidget {
     }
   }
 
-  TextStyle? _getTitleStyle(BuildContext context, bool isDesktop, bool isTablet) {
+  TextStyle? _getTitleStyle(
+    BuildContext context,
+    bool isDesktop,
+    bool isTablet,
+  ) {
     final theme = Theme.of(context);
-    
+
     if (isDesktop) {
       return theme.textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.w500,
@@ -130,9 +132,13 @@ class StatCard extends StatelessWidget {
     }
   }
 
-  TextStyle? _getValueStyle(BuildContext context, bool isDesktop, bool isTablet) {
+  TextStyle? _getValueStyle(
+    BuildContext context,
+    bool isDesktop,
+    bool isTablet,
+  ) {
     final theme = Theme.of(context);
-    
+
     if (isDesktop) {
       return theme.textTheme.headlineMedium?.copyWith(
         fontWeight: FontWeight.bold,

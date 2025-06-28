@@ -1,7 +1,7 @@
 // lib/data/repositories/appointment_repository_impl.dart
-import 'package:clinic_management_system/domain/entities/appointment.dart';
-import 'package:clinic_management_system/domain/repositories/appointment_repository.dart';
-import 'package:clinic_management_system/data/models/appointment_model.dart';
+import 'package:physioprime/domain/entities/appointment.dart';
+import 'package:physioprime/domain/repositories/appointment_repository.dart';
+import 'package:physioprime/data/models/appointment_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
@@ -31,7 +31,10 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
     // Try Hive first
     final hiveData = _hiveAppointmentsBox.get(id);
     if (hiveData != null) {
-      return AppointmentModel.fromMap(id, Map<String, dynamic>.from(hiveData as Map)).toEntity();
+      return AppointmentModel.fromMap(
+        id,
+        Map<String, dynamic>.from(hiveData as Map),
+      ).toEntity();
     }
 
     // Fallback to Firestore if not found in Hive
@@ -56,7 +59,10 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
     // Filter from Hive data first
     final List<Appointment> appointments = [];
     _hiveAppointmentsBox.values.forEach((appointmentMap) {
-      final model = AppointmentModel.fromMap('id_not_used_for_filtering', Map<String, dynamic>.from(appointmentMap));
+      final model = AppointmentModel.fromMap(
+        'id_not_used_for_filtering',
+        Map<String, dynamic>.from(appointmentMap),
+      );
       if (DateFormat('yyyy-MM-dd').format(model.date) == formattedDate) {
         appointments.add(model.toEntity());
       }

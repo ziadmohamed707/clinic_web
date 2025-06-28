@@ -28,30 +28,30 @@ class PackagesPage extends StatelessWidget {
         "category": "Package Physio"
       }
     ],
-    "Package Machines": [
+    "Package Recovery": [
       {
-        "name": "1 machine session",
+        "name": "1 recovery session",
         "totalSessions": 1,
         "remainingSessions": 1,
-        "category": "Package Machines"
+        "category": "Package recoverys"
       },
       {
-        "name": "3 machine sessions",
+        "name": "3 recovery sessions",
         "totalSessions": 3,
         "remainingSessions": 3,
-        "category": "Package Machines"
+        "category": "Package recoverys"
       },
       {
-        "name": "6 machine sessions",
+        "name": "6 recovery sessions",
         "totalSessions": 6,
         "remainingSessions": 6,
-        "category": "Package Machines"
+        "category": "Package recoverys"
       },
       {
-        "name": "12 machine sessions",
+        "name": "12 recovery sessions",
         "totalSessions": 12,
         "remainingSessions": 12,
-        "category": "Package Machines"
+        "category": "Package recoverys"
       }
     ],
     "Package Rehabilitation": [

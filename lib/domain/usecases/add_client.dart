@@ -1,4 +1,4 @@
-import 'package:clinic_management_system/domain/entities/client_package.dart';
+import 'package:physioprime/domain/entities/client_package.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import '../../core/errors/failures.dart';

@@ -1,4 +1,4 @@
-import 'package:clinic_management_system/domain/entities/client_package.dart';
+import 'package:physioprime/domain/entities/client_package.dart';
 import 'package:equatable/equatable.dart'; // For easier comparison if needed
 
 class Appointment extends Equatable {
@@ -28,7 +28,7 @@ class Appointment extends Equatable {
     this.packageCategoryUsed,
   });
 
- Appointment copyWith({
+  Appointment copyWith({
     String? id,
     String? patientName,
     String? doctorName,
@@ -58,18 +58,18 @@ class Appointment extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        patientName,
-        doctorName,
-        timeSlot,
-        date,
-        phoneNumber,
-        clientId,
-        status,
-        serviceType,
-        packageNameUsed,
-        packageCategoryUsed,
-      ];
+    id,
+    patientName,
+    doctorName,
+    timeSlot,
+    date,
+    phoneNumber,
+    clientId,
+    status,
+    serviceType,
+    packageNameUsed,
+    packageCategoryUsed,
+  ];
 }
 
 enum AppointmentStatus { booked, cancelled, completed }
@@ -88,20 +88,27 @@ enum ServiceType {
 ServiceType? serviceTypeFromString(String? value) {
   if (value == null) return null;
   return ServiceType.values.firstWhere(
-    (e) => e.toString().split('.').last == value.replaceAll(' ', '').toLowerCase(),
+    (e) =>
+        e.toString().split('.').last == value.replaceAll(' ', '').toLowerCase(),
     orElse: () => ServiceType.examination, // Default or handle error
   );
 }
 
 String serviceTypeToString(ServiceType type) {
   switch (type) {
-    case ServiceType.examination: return 'Examination';
-    case ServiceType.consultation: return 'Consultation';
-    case ServiceType.recoveryFullBody: return 'Recovery (Full Body)';
-    case ServiceType.recoveryUpper: return 'Recovery (Upper)';
-    case ServiceType.recoveryLower: return 'Recovery (Lower)';
-    case ServiceType.cupping: return 'Cupping';
-    case ServiceType.followUpSession: return 'Follow-up Session';
+    case ServiceType.examination:
+      return 'Examination';
+    case ServiceType.consultation:
+      return 'Consultation';
+    case ServiceType.recoveryFullBody:
+      return 'Recovery (Full Body)';
+    case ServiceType.recoveryUpper:
+      return 'Recovery (Upper)';
+    case ServiceType.recoveryLower:
+      return 'Recovery (Lower)';
+    case ServiceType.cupping:
+      return 'Cupping';
+    case ServiceType.followUpSession:
+      return 'Follow-up Session';
   }
 }
-
