@@ -33,6 +33,7 @@ class ScheduleGridScreen extends StatefulWidget {
 
 class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
   List<Map<String, dynamic>> _availableDoctorsForSelectedDate = [];
+  List<Map<String, dynamic>> _availableDoctorForSelectedDate = [];
   List<Map<String, dynamic>> _selectedClientPackages =
       []; // To store packages selected for this client
 
@@ -107,34 +108,48 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
   }
 
   void _loadAvailableDoctorsForSelectedDate() {
+    final allDoctors =
+        _doctorsBox.values
+            .map((doc) => Map<String, dynamic>.from(doc as Map))
+            .toList();
+    final String dayOfWeek = DateFormat(
+      'EEEE',
+    ).format(selectedDate); // e.g., "Monday"
     final allDoctorsFromBox =
         _doctorsBox.values
             .map((doc) => Map<String, dynamic>.from(doc as Map))
             .toList();
 
-    // Step 1: Filter doctors based on user role
-    Iterable<Map<String, dynamic>> doctorsFilteredByRole;
+    Iterable<Map<String, dynamic>> doctorsToDisplay;
+
     if (widget.user.role == 'doctor') {
-      doctorsFilteredByRole = allDoctorsFromBox.where((doctor) {
-        return doctor['name'] == 'Dr. ${widget.user.username}';
+      // If the user is a doctor, filter to only show their column.
+      doctorsToDisplay = allDoctorsFromBox.where((doctor) {
+        return doctor['name'] == widget.user.username;
       });
     } else {
-      doctorsFilteredByRole = allDoctorsFromBox;
+      // For other roles, show all doctors.
+      doctorsToDisplay = allDoctorsFromBox;
     }
-
-    // Step 2: Filter the role-filtered doctors by their availability on the selected day
-    final String dayOfWeek = DateFormat('EEEE').format(selectedDate);
-
     setState(() {
       _availableDoctorsForSelectedDate =
-          doctorsFilteredByRole.where((doctor) {
+          allDoctors.where((doctor) {
+            final List<dynamic> availableDays =
+                doctor['availableDays'] as List<dynamic>? ?? [];
+            return availableDays.contains(dayOfWeek);
+          }).toList();
+      _availableDoctorForSelectedDate =
+          doctorsToDisplay.where((doctor) {
             final List<dynamic> availableDays =
                 doctor['availableDays'] as List<dynamic>? ?? [];
             return availableDays.contains(dayOfWeek);
           }).toList();
 
-      // Optionally sort doctors by name (this will now sort the potentially single doctor or the full list)
+      // Optionally sort doctors by name
       _availableDoctorsForSelectedDate.sort(
+        (a, b) => (a['name'] as String).compareTo(b['name'] as String),
+      );
+      _availableDoctorForSelectedDate.sort(
         (a, b) => (a['name'] as String).compareTo(b['name'] as String),
       );
     });
@@ -156,6 +171,35 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       );
     }
   }
+
+  // Future<void> _saveClientToFirestore(
+  //   String key,
+  //   Map<String, dynamic> data,
+  // ) async {
+  //   try {
+  //     await _clientsCollection.doc(key).set(data);
+  //     // Only update lastId if it's the latest ID
+  //     final currentLastId = Hive.box('clients').get('lastId', defaultValue: 0);
+  //     if (data['id'] > currentLastId) {
+  //       // await _clientsCollection.doc('metadata').set({'lastId': data['id']});
+  //       await _clientsCollection.doc(key).set(data);
+  //       final currentLastId = Hive.box(
+  //         'clients',
+  //       ).get('lastId', defaultValue: 0);
+  //       if (data['id'] > currentLastId) {
+  //         await _clientsCollection.doc('metadata').set({'lastId': data['id']});
+  //       }
+  //     }
+  //   } catch (e) {
+  //     print('Error saving client to Firestore: $e');
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text('Failed to save client: $e'),
+  //         backgroundColor: Colors.redAccent,
+  //       ),
+  //     );
+  //   }
+  // }
 
   // Centralized method to update client data in Hive and Firestore, including metadata
   Future<void> _updateClientData(
@@ -700,6 +744,455 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       });
     }
   }
+  // void _editCell(String timeSlot, Map<String, dynamic> doctorData) async {
+  //   final String formattedDateForKey = DateFormat(
+  //     'yyyy-MM-dd',
+  //   ).format(selectedDate);
+
+  //   final String key = '$formattedDateForKey-$timeSlot-${doctorData['id']}';
+  //   final String columnDoctorName = doctorData['name'] as String;
+
+  //  final Map<String, dynamic> existing = Map<String, dynamic>.from(box.get(
+  //     key,
+  //     defaultValue: {
+  //       'patient': '',
+  //       'doctor': columnDoctorName,
+  //       'phone': '',
+  //       'clientId': null,
+  //       'status': null,
+  //       'serviceType': null,
+  //     },
+  //   ) as Map? ??
+  //   {});
+  //   // Initialize with existing doctor or column doctor
+  //   final doctorController = TextEditingController(
+  //     text: existing['doctor'] ?? columnDoctorName,
+  //   );
+
+  //   final clientBox = Hive.box('clients');
+  //   final allClients =
+  //       clientBox.keys
+  //           .where((key) => key != 'lastId')
+  //           .map(
+  //             (key) =>
+  //                 Map<String, dynamic>.from(clientBox.get(key) as Map? ?? {}),
+  //           )
+  //           .toList();
+
+  //   // Initialize selected client from existing appointment
+  //   Map? selectedClient;
+  //   if (existing['clientId'] != null) {
+  //     final clientData = clientBox.get(existing['clientId'].toString());
+  //     if (clientData != null) {
+  //       selectedClient = Map<String, dynamic>.from(clientData as Map);
+  //     }
+  //   }
+  //   // Fallback to patient name if clientId not found but patient name exists
+  //   else if (existing['patient'] != null &&
+  //       (existing['patient'] as String).isNotEmpty) {
+  //     selectedClient = {
+  //       'name': existing['patient'],
+  //       'phone': existing['phone'] ?? '',
+  //       'id': existing['clientId'],
+  //     };
+  //   }
+
+  //   final searchController = TextEditingController();
+  //   List<Map> localFilteredClients = List.from(allClients);
+  //   String? _dialogSelectedServiceType = existing['serviceType'] as String?;
+  //   String? _dialogSelectedFollowUpPackageName;
+
+  //   final bool? appointmentSaved = await showDialog<bool>(
+  //     context: context,
+  //     builder: (dialogContext) {
+  //       return StatefulBuilder(
+  //         builder: (context, setStateDialog) {
+  //           void filterClients(String query) {
+  //             setStateDialog(() {
+  //               if (query.isEmpty) {
+  //                 localFilteredClients = List.from(allClients);
+  //               } else {
+  //                 localFilteredClients =
+  //                     allClients.where((client) {
+  //                       final name =
+  //                           client['name']?.toString().toLowerCase() ?? '';
+  //                       final id = client['id']?.toString().toLowerCase() ?? '';
+  //                       return name.contains(query.toLowerCase()) ||
+  //                           id.contains(query.toLowerCase());
+  //                     }).toList();
+  //               }
+  //             });
+  //           }
+
+  //           List<Map<String, dynamic>> _clientActivePackagesForFollowUp = [];
+  //           if (selectedClient != null &&
+  //               _dialogSelectedServiceType == 'Follow-up Session') {
+  //             final clientDataFromBox = clientBox.get(
+  //               selectedClient!['id']?.toString(),
+  //             );
+  //             if (clientDataFromBox is Map) {
+  //               final currentClientData = Map<String, dynamic>.from(
+  //                 clientDataFromBox,
+  //               );
+  //               if (currentClientData['bookedPackages'] != null) {
+  //                 _clientActivePackagesForFollowUp =
+  //                     (currentClientData['bookedPackages'] as List<dynamic>)
+  //                         .map((p) => Map<String, dynamic>.from(p as Map))
+  //                         .where(
+  //                           (pkg) =>
+  //                               (pkg['remainingSessions'] as int? ?? 0) > 0,
+  //                         )
+  //                         .toList();
+  //               }
+  //             }
+  //           }
+
+  //           // Reset follow-up package selection if conditions change
+  //           if (_dialogSelectedServiceType != 'Follow-up Session' ||
+  //               _clientActivePackagesForFollowUp.isEmpty) {
+  //             _dialogSelectedFollowUpPackageName = null;
+  //           } else if (_dialogSelectedFollowUpPackageName != null &&
+  //               !_clientActivePackagesForFollowUp.any(
+  //                 (pkg) => pkg['name'] == _dialogSelectedFollowUpPackageName,
+  //               )) {
+  //             _dialogSelectedFollowUpPackageName = null;
+  //           }
+
+  //           return AlertDialog(
+  //             title: Text(
+  //               'Edit Appointment on ${DateFormat('MMM d').format(selectedDate)} at $timeSlot',
+  //               style: Theme.of(context).textTheme.headlineSmall,
+  //             ),
+  //             content: PopScope(
+  //               canPop: true,
+  //               child: SizedBox(
+  //                 width: MediaQuery.of(context).size.width * 0.8,
+  //                 child: SingleChildScrollView(
+  //                   child: Column(
+  //                     mainAxisSize: MainAxisSize.min,
+  //                     children: [
+  //                       // Show current appointment info if exists
+  //                       if (existing['patient'] != null &&
+  //                           (existing['patient'] as String).isNotEmpty)
+  //                         Container(
+  //                           padding: const EdgeInsets.all(12),
+  //                           margin: const EdgeInsets.only(bottom: 15),
+  //                           decoration: BoxDecoration(
+  //                             color: Colors.blue.shade50,
+  //                             borderRadius: BorderRadius.circular(8),
+  //                             border: Border.all(color: Colors.blue.shade200),
+  //                           ),
+  //                           child: Column(
+  //                             crossAxisAlignment: CrossAxisAlignment.start,
+  //                             children: [
+  //                               Text(
+  //                                 'Current Appointment:',
+  //                                 style: TextStyle(
+  //                                   fontWeight: FontWeight.bold,
+  //                                   color: Colors.blue.shade700,
+  //                                 ),
+  //                               ),
+  //                               const SizedBox(height: 4),
+  //                               Text('Patient: ${existing['patient']}'),
+  //                               Text('Doctor: ${existing['doctor']}'),
+  //                               if (existing['serviceType'] != null)
+  //                                 Text('Service: ${existing['serviceType']}'),
+  //                               if (existing['status'] != null)
+  //                                 Text('Status: ${existing['status']}'),
+  //                             ],
+  //                           ),
+  //                         ),
+
+  //                       // Client Search Field
+  //                       TextField(
+  //                         controller: searchController,
+  //                         decoration: InputDecoration(
+  //                           labelText: 'Search Client by Name or ID',
+  //                           suffixIcon: const Icon(Icons.search),
+  //                           border: OutlineInputBorder(
+  //                             borderRadius: BorderRadius.circular(8.0),
+  //                           ),
+  //                         ),
+  //                         autofocus: selectedClient == null,
+  //                         onChanged: filterClients,
+  //                       ),
+  //                       const SizedBox(height: 10),
+
+  //                       // Selected Client Display
+  //                       if (selectedClient != null)
+  //                         Container(
+  //                           padding: const EdgeInsets.all(12),
+  //                           margin: const EdgeInsets.only(bottom: 10),
+  //                           decoration: BoxDecoration(
+  //                             color: Colors.green.shade50,
+  //                             borderRadius: BorderRadius.circular(8),
+  //                             border: Border.all(color: Colors.green.shade200),
+  //                           ),
+  //                           child: Row(
+  //                             children: [
+  //                               Icon(
+  //                                 Icons.person,
+  //                                 color: Colors.green.shade700,
+  //                               ),
+  //                               const SizedBox(width: 8),
+  //                               Expanded(
+  //                                 child: Column(
+  //                                   crossAxisAlignment:
+  //                                       CrossAxisAlignment.start,
+  //                                   children: [
+  //                                     Text(
+  //                                       'Selected: ${selectedClient!['name']}',
+  //                                       style: TextStyle(
+  //                                         fontWeight: FontWeight.bold,
+  //                                         color: Colors.green.shade700,
+  //                                       ),
+  //                                     ),
+  //                                     Text('ID: ${selectedClient!['id']}'),
+  //                                   ],
+  //                                 ),
+  //                               ),
+  //                               IconButton(
+  //                                 icon: const Icon(Icons.clear),
+  //                                 onPressed: () {
+  //                                   setStateDialog(() {
+  //                                     selectedClient = null;
+  //                                   });
+  //                                 },
+  //                               ),
+  //                             ],
+  //                           ),
+  //                         ),
+
+  //                       // Client List (only show if no client selected or searching)
+  //                       if (selectedClient == null ||
+  //                           searchController.text.isNotEmpty)
+  //                         Container(
+  //                           height: 200,
+  //                           width: double.maxFinite,
+  //                           decoration: BoxDecoration(
+  //                             border: Border.all(color: Colors.grey.shade300),
+  //                             borderRadius: BorderRadius.circular(8.0),
+  //                           ),
+  //                           child:
+  //                               localFilteredClients.isEmpty
+  //                                   ? const Center(
+  //                                     child: Padding(
+  //                                       padding: EdgeInsets.all(16.0),
+  //                                       child: Text(
+  //                                         'No clients found. Add a new client or refine search.',
+  //                                         textAlign: TextAlign.center,
+  //                                         style: TextStyle(color: Colors.grey),
+  //                                       ),
+  //                                     ),
+  //                                   )
+  //                                   : ListView.builder(
+  //                                     itemCount: localFilteredClients.length,
+  //                                     itemBuilder: (context, index) {
+  //                                       final client =
+  //                                           localFilteredClients[index];
+  //                                       final isSelected =
+  //                                           selectedClient != null &&
+  //                                           selectedClient!['id'] ==
+  //                                               client['id'];
+
+  //                                       return ListTile(
+  //                                         title: Text(
+  //                                           '${client['name']}',
+  //                                           style: TextStyle(
+  //                                             fontWeight:
+  //                                                 isSelected
+  //                                                     ? FontWeight.bold
+  //                                                     : FontWeight.normal,
+  //                                           ),
+  //                                         ),
+  //                                         subtitle: Text('ID: ${client['id']}'),
+  //                                         trailing:
+  //                                             isSelected
+  //                                                 ? const Icon(
+  //                                                   Icons.check_circle,
+  //                                                   color: Colors.green,
+  //                                                 )
+  //                                                 : null,
+  //                                         onTap: () {
+  //                                           setStateDialog(() {
+  //                                             selectedClient = client;
+  //                                             searchController.clear();
+  //                                           });
+  //                                         },
+  //                                         tileColor:
+  //                                             isSelected
+  //                                                 ? Theme.of(context)
+  //                                                     .primaryColor
+  //                                                     .withOpacity(0.1)
+  //                                                 : null,
+  //                                       );
+  //                                     },
+  //                                   ),
+  //                         ),
+  //                       const SizedBox(height: 15),
+
+  //                       // Service Type Dropdown
+  //                       DropdownButtonFormField<String>(
+  //                         value: _dialogSelectedServiceType,
+  //                         hint: const Text('Select Service Type'),
+  //                         isExpanded: true,
+  //                         items:
+  //                             AppConsts().kServiceTypes.map((String value) {
+  //                               return DropdownMenuItem<String>(
+  //                                 value: value,
+  //                                 child: Text(value),
+  //                               );
+  //                             }).toList(),
+  //                         onChanged: (String? newValue) {
+  //                           setStateDialog(() {
+  //                             _dialogSelectedServiceType = newValue;
+  //                           });
+  //                         },
+  //                         decoration: InputDecoration(
+  //                           labelText: 'Service Type',
+  //                           border: OutlineInputBorder(
+  //                             borderRadius: BorderRadius.circular(8.0),
+  //                           ),
+  //                         ),
+  //                       ),
+  //                       const SizedBox(height: 15),
+
+  //                       // Follow-up Package Selection (if applicable)
+  //                       if (_dialogSelectedServiceType == 'Follow-up Session' &&
+  //                           selectedClient != null &&
+  //                           _clientActivePackagesForFollowUp.isNotEmpty)
+  //                         DropdownButtonFormField<String>(
+  //                           value: _dialogSelectedFollowUpPackageName,
+  //                           hint: const Text('Select Package for Follow-up'),
+  //                           isExpanded: true,
+  //                           items:
+  //                               _clientActivePackagesForFollowUp.map((package) {
+  //                                 return DropdownMenuItem<String>(
+  //                                   value: package['name'],
+  //                                   child: Text(
+  //                                     '${package['name']} (${package['remainingSessions']} sessions left)',
+  //                                   ),
+  //                                 );
+  //                               }).toList(),
+  //                           onChanged: (String? newValue) {
+  //                             setStateDialog(() {
+  //                               _dialogSelectedFollowUpPackageName = newValue;
+  //                             });
+  //                           },
+  //                           decoration: InputDecoration(
+  //                             labelText: 'Follow-up Package',
+  //                             border: OutlineInputBorder(
+  //                               borderRadius: BorderRadius.circular(8.0),
+  //                             ),
+  //                           ),
+  //                         ),
+  //                       const SizedBox(height: 15),
+
+  //                       // Doctor Field
+  //                       TextField(
+  //                         controller: doctorController,
+  //                         decoration: InputDecoration(
+  //                           labelText: 'Assigned Doctor',
+  //                           border: OutlineInputBorder(
+  //                             borderRadius: BorderRadius.circular(8.0),
+  //                           ),
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               ),
+  //             ),
+  //             actions: [
+  //               // Cancel Button
+  //               TextButton(
+  //                 onPressed: () => Navigator.pop(dialogContext, false),
+  //                 style: TextButton.styleFrom(
+  //                   foregroundColor: Colors.grey[700],
+  //                 ),
+  //                 child: const Text('Cancel'),
+  //               ),
+
+  //               // Delete Appointment Button (if booked)
+  //               if (existing['status'] == 'booked')
+  //                 TextButton.icon(
+  //                   icon: const Icon(Icons.delete, color: Colors.red),
+  //                   label: const Text(
+  //                     'Delete',
+  //                     style: TextStyle(color: Colors.red),
+  //                   ),
+  //                   onPressed:
+  //                       () => _cancelAppointment(
+  //                         dialogContext,
+  //                         key,
+  //                         existing,
+  //                         columnDoctorName,
+  //                         _dialogSelectedServiceType,
+  //                       ),
+  //                 ),
+
+  //               // Save Button
+  //               ElevatedButton(
+  //                 onPressed: () {
+  //                   if (_dialogSelectedServiceType == 'Follow-up Session' &&
+  //                       selectedClient != null &&
+  //                       _clientActivePackagesForFollowUp.isNotEmpty &&
+  //                       (_dialogSelectedFollowUpPackageName == null ||
+  //                           _dialogSelectedFollowUpPackageName!.isEmpty)) {
+  //                     ScaffoldMessenger.of(dialogContext).showSnackBar(
+  //                       const SnackBar(
+  //                         content: Text(
+  //                           'Please select a package for the follow-up session.',
+  //                         ),
+  //                         backgroundColor: Colors.orange,
+  //                       ),
+  //                     );
+  //                     return;
+  //                   }
+  //                   _saveAppointment(
+  //                     dialogContext,
+  //                     key,
+  //                     selectedClient,
+  //                     doctorController.text,
+  //                     _dialogSelectedServiceType,
+  //                     _dialogSelectedFollowUpPackageName,
+  //                   );
+  //                 },
+  //                 style: ElevatedButton.styleFrom(
+  //                   backgroundColor: Theme.of(context).primaryColor,
+  //                   foregroundColor: Colors.white,
+  //                 ),
+  //                 child: const Text('Save Appointment'),
+  //               ),
+
+  //               // WhatsApp Button (if client selected)
+  //               if (selectedClient != null)
+  //                 TextButton.icon(
+  //                   icon: const Icon(Icons.chat, color: Colors.green),
+  //                   label: const Text(
+  //                     'WhatsApp',
+  //                     style: TextStyle(color: Colors.green),
+  //                   ),
+  //                   onPressed:
+  //                       () => _sendWhatsAppMessage(selectedClient!, timeSlot),
+  //                 ),
+  //             ],
+  //           );
+  //         },
+  //       );
+  //     },
+  //   );
+
+  //   // Dispose controllers
+  //   doctorController.dispose();
+  //   searchController.dispose();
+
+  //   if (appointmentSaved == true) {
+  //     setState(() {
+  //       // Force rebuild to refresh the UI
+  //     });
+  //   }
+  // }
 
   // Helper method for canceling appointment
   Future<void> _cancelAppointment(
@@ -998,6 +1491,139 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     }
   }
 
+  // // Helper method for saving appointment
+  // void _saveAppointment(
+  //   BuildContext dialogContext,
+  //   String key,
+  //   Map? selectedClient,
+  //   String doctor, [
+  //   String? serviceType,
+  //   String? followUpPackageName, // Added missing parameter
+  // ]) {
+  //   if (selectedClient != null) {
+  //     final clientBox = Hive.box('clients');
+  //     Map<String, dynamic> clientData = Map<String, dynamic>.from(
+  //       clientBox.get(selectedClient['id'].toString()) as Map? ?? {},
+  //     );
+  //     List<Map<String, dynamic>> bookedPackages =
+  //         (clientData['bookedPackages'] as List<dynamic>?)
+  //             ?.map((p) => Map<String, dynamic>.from(p as Map))
+  //             .toList() ??
+  //         [];
+
+  //     String? packageNameUsed;
+  //     String? packageCategoryUsed;
+  //     bool packageSessionDecremented = false;
+
+  //     if (serviceType == 'Follow-up Session') {
+  //       if (followUpPackageName != null && bookedPackages.isNotEmpty) {
+  //         bool packageFoundAndDecremented = false;
+  //         for (int i = 0; i < bookedPackages.length; i++) {
+  //           Map<String, dynamic> pkg = bookedPackages[i];
+  //           if (pkg['name'] == followUpPackageName &&
+  //               (pkg['remainingSessions'] as int? ?? 0) > 0) {
+  //             pkg['remainingSessions'] = (pkg['remainingSessions'] as int) - 1;
+  //             packageNameUsed = pkg['name'] as String?;
+  //             packageCategoryUsed = pkg['category'] as String?;
+  //             bookedPackages[i] = pkg;
+  //             packageSessionDecremented = true;
+  //             packageFoundAndDecremented = true;
+  //             break;
+  //           }
+  //         }
+  //         if (!packageFoundAndDecremented && dialogContext.mounted) {
+  //           // It's good practice to check if context is still mounted before showing SnackBar
+  //           ScaffoldMessenger.of(dialogContext).showSnackBar(
+  //             const SnackBar(
+  //               content: Text(
+  //                 'Selected follow-up package not found or has no sessions. Booking as non-package session.',
+  //               ),
+  //               backgroundColor: Colors.orange,
+  //             ),
+  //           );
+  //         }
+  //       } else if (dialogContext.mounted) {
+  //         // Also check mounted here
+  //         ScaffoldMessenger.of(dialogContext).showSnackBar(
+  //           const SnackBar(
+  //             content: Text(
+  //               'Follow-up package not specified. Booking as non-package session.',
+  //             ),
+  //             backgroundColor: Colors.orange,
+  //           ),
+  //         );
+  //       }
+  //     } else if (serviceType != null && bookedPackages.isNotEmpty) {
+  //       String? targetCategory;
+  //       // Determine target category based on service type
+  //       if (serviceType.toLowerCase().contains('physio') ||
+  //           serviceType.toLowerCase().contains('recovery')) {
+  //         targetCategory = 'Package Physio';
+  //       } else if (serviceType.toLowerCase().contains('recovery')) {
+  //         targetCategory = 'Package recoverys';
+  //       } else if (serviceType.toLowerCase().contains('rehab')) {
+  //         targetCategory = 'Package Rehabilitation';
+  //       }
+
+  //       if (targetCategory != null) {
+  //         for (int i = 0; i < bookedPackages.length; i++) {
+  //           Map<String, dynamic> pkg = bookedPackages[i];
+  //           if (pkg['category'] == targetCategory &&
+  //               (pkg['remainingSessions'] as int? ?? 0) > 0) {
+  //             pkg['remainingSessions'] = (pkg['remainingSessions'] as int) - 1;
+  //             packageNameUsed = pkg['name'] as String?;
+  //             packageCategoryUsed = pkg['category'] as String?;
+  //             bookedPackages[i] = pkg;
+  //             packageSessionDecremented = true;
+  //             break;
+  //           }
+  //         }
+  //       }
+  //     }
+
+  //     try {
+  //       final appointmentData = {
+  //         'patient': selectedClient['name'],
+  //         'phone': selectedClient['phone'],
+  //         'doctor': doctor,
+  //         'clientId': selectedClient['id'],
+  //         'status': 'booked',
+  //         'serviceType': serviceType,
+  //         'packageNameUsed': packageNameUsed,
+  //         'packageCategoryUsed': packageCategoryUsed,
+  //       };
+
+  //       box.put(key, appointmentData); // Save to Hive
+  //       _saveAppointmentToFirestore(key, appointmentData); // Sync to Firestore
+
+  //       if (packageSessionDecremented) {
+  //         clientData['bookedPackages'] = bookedPackages;
+  //         clientBox.put(selectedClient['id'].toString(), clientData);
+  //         _updateClientData(
+  //           selectedClient['id'].toString(),
+  //           clientData,
+  //         ); // Use refactored method
+  //       }
+
+  //       Navigator.pop(dialogContext, true);
+  //     } catch (e) {
+  //       ScaffoldMessenger.of(dialogContext).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Error saving appointment: $e'),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     }
+  //   } else {
+  //     ScaffoldMessenger.of(dialogContext).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Please select a client to save.'),
+  //         backgroundColor: Colors.orange,
+  //       ),
+  //     );
+  //   }
+  // }
+
   // Helper method for WhatsApp messaging
   Future<void> _sendWhatsAppMessage(Map selectedClient, String timeSlot) async {
     try {
@@ -1254,7 +1880,7 @@ See you & Have a nice day''';
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Schedule for ${DateFormat('EEE, MMM d,yyyy').format(selectedDate)}', // Corrected date format
+              'Schedule for ${DateFormat('EEE, MMM d, yyyy').format(selectedDate)}', // Corrected date format
             ),
             SizedBox(height: 8),
             Text(

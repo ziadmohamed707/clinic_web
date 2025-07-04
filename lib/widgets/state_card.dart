@@ -32,8 +32,8 @@ class StatCard extends StatelessWidget {
 
         return Card(
           margin: cardMargin,
-          color: color.withOpacity(0.1),
-          elevation: isDesktop ? 2 : 1,
+          color: color,
+          elevation: isDesktop ? 10 : 9,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(isDesktop ? 12 : 8),
           ),
@@ -43,7 +43,7 @@ class StatCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(icon, size: iconSize, color: color),
+                Icon(icon, size: iconSize, color: Colors.black),
                 SizedBox(height: verticalSpacing.small),
                 Flexible(
                   child: Text(
@@ -117,17 +117,17 @@ class StatCard extends StatelessWidget {
     if (isDesktop) {
       return theme.textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.w500,
-        color: color,
+        color: Colors.black,
       );
     } else if (isTablet) {
       return theme.textTheme.titleSmall?.copyWith(
         fontWeight: FontWeight.w500,
-        color: color,
+        color: Colors.black,
       );
     } else {
       return theme.textTheme.labelMedium?.copyWith(
         fontWeight: FontWeight.w500,
-        color: color,
+        color: Colors.black,
       );
     }
   }
@@ -142,17 +142,17 @@ class StatCard extends StatelessWidget {
     if (isDesktop) {
       return theme.textTheme.headlineMedium?.copyWith(
         fontWeight: FontWeight.bold,
-        color: color,
+        color: Colors.black,
       );
     } else if (isTablet) {
       return theme.textTheme.headlineSmall?.copyWith(
         fontWeight: FontWeight.bold,
-        color: color,
+        color: Colors.black,
       );
     } else {
       return theme.textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.bold,
-        color: color,
+        color: Colors.black,
       );
     }
   }

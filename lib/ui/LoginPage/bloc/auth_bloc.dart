@@ -54,7 +54,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
 
     on<LoginSubmitted>(_onLoginSubmitted);
-    on<RegisterSubmitted>(_onRegisterSubmitted);
+    // on<RegisterSubmitted>(_onRegisterSubmitted);
     on<LogoutRequested>(_onLogoutRequested);
 
     // After setting up all event handlers, dispatch the initial check event.
@@ -126,32 +126,32 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _onRegisterSubmitted(
-    RegisterSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
-    try {
-      final userModel = await _authRepository.signUp(
-        email: event.email,
-        username: event.username,
-        password: event.password,
-      );
-      // The `_authRepository.signUp` method already calls `saveUserSession`
-      // and adds the `userModel` to `_authRepository.currentUserStream`.
-      // Thus, `_userSessionSubscription` will pick up this change and emit the authenticated state.
-      // No explicit emit here.
+  // Future<void> _onRegisterSubmitted(
+  //   RegisterSubmitted event,
+  //   Emitter<AuthState> emit,
+  // ) async {
+  //   emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
+  //   try {
+  //     final userModel = await _authRepository.signUp(
+  //       email: event.email,
+  //       username: event.username,
+  //       password: event.password,
+  //     );
+  //     // The `_authRepository.signUp` method already calls `saveUserSession`
+  //     // and adds the `userModel` to `_authRepository.currentUserStream`.
+  //     // Thus, `_userSessionSubscription` will pick up this change and emit the authenticated state.
+  //     // No explicit emit here.
 
-      // Removed redundant initializeAppData() here.
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: e.toString().replaceFirst('Exception: ', ''),
-        ),
-      );
-    }
-  }
+  //     // Removed redundant initializeAppData() here.
+  //   } catch (e) {
+  //     emit(
+  //       state.copyWith(
+  //         status: AuthStatus.error,
+  //         errorMessage: e.toString().replaceFirst('Exception: ', ''),
+  //       ),
+  //     );
+  //   }
+  // }
 
   Future<void> _onLogoutRequested(
     LogoutRequested event,

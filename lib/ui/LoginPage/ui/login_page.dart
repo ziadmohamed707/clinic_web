@@ -1,4 +1,5 @@
 import 'package:physioprime/core/app_consts/app_consts.dart';
+import 'package:physioprime/main.dart';
 import 'package:physioprime/ui/HomePage/ui/home_page.dart';
 import 'package:physioprime/ui/LoginPage/bloc/auth_bloc.dart';
 import 'package:physioprime/ui/LoginPage/bloc/auth_event.dart';
@@ -10,6 +11,7 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // The AuthBloc is now provided by the BlocProvider in main.dart
+
     return _LoginView();
   }
 }
@@ -51,6 +53,11 @@ class _LoginViewState extends State<_LoginView> {
         _showError('Please enter username and password.');
         return;
       }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => AuthStateListener()),
+      );
       context.read<AuthBloc>().add(
         LoginSubmitted(
           username: username,
@@ -59,6 +66,13 @@ class _LoginViewState extends State<_LoginView> {
         ),
       );
     }
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    setState(() {});
   }
 
   @override
@@ -95,6 +109,7 @@ class _LoginViewState extends State<_LoginView> {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
                     margin: const EdgeInsets.all(16),
@@ -146,17 +161,22 @@ class _LoginViewState extends State<_LoginView> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  CheckboxListTile(
-                    title: const Text("Keep me logged in"),
-                    value: _keepLoggedIn,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _keepLoggedIn = value ?? false;
-                      });
-                    },
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.zero,
-                    activeColor: Theme.of(context).primaryColor,
+                  Center(
+                    child: SizedBox(
+                      width: 350,
+                      child: CheckboxListTile(
+                        title: const Text("Keep me logged in"),
+                        value: _keepLoggedIn,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            _keepLoggedIn = value ?? false;
+                          });
+                        },
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: Theme.of(context).primaryColor,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   state.isLoading

@@ -1,5 +1,6 @@
 // lib/ui/LoginPage/bloc/auth_event.dart
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
@@ -12,12 +13,13 @@ class LoginSubmitted extends AuthEvent {
   final String username;
   final String password;
   final bool keepLoggedIn;
+  final BuildContext? context; // Optional context for navigation
 
   const LoginSubmitted(
-      {required this.username, required this.password, required this.keepLoggedIn});
+      {required this.username, required this.password, required this.keepLoggedIn, this.context});
 
   @override
-  List<Object> get props => [username, password, keepLoggedIn];
+  List<Object> get props => [username, password, keepLoggedIn , context ?? ''];
 }
 
 class RegisterSubmitted extends AuthEvent {
@@ -33,4 +35,6 @@ class RegisterSubmitted extends AuthEvent {
   List<Object> get props => [email, username, password, keepLoggedIn];
 }
 
-class LogoutRequested extends AuthEvent {}
+class LogoutRequested extends AuthEvent {
+}
+
