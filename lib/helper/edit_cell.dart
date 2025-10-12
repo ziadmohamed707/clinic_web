@@ -202,7 +202,7 @@ class _AppointmentDialog {
     return '''Hello $clientName,
 
 PHYSIO PRIME CLINIC
-"Cairo Stadium Club"
+Cairo Stadium Club - Squash Stadium Complex https://maps.app.goo.gl/WGZ44exa2dX7tiiz9 
 عياده Physio Prime تذكركم بمعادكم يوم $appointmentDate
 الساعة $timeSlot
 
@@ -220,8 +220,8 @@ Please be informed that any delay will be calculated from the session duration.
 For excuse, please call at least 4 hours before that session or it will be canceled from your package.
 If you do not confirm 4 hours before your session, please call to reschedule your appointment.
 
-Clinic number
-
+Clinic number 
+01558692685
 See you & Have a nice day''';
   }
 

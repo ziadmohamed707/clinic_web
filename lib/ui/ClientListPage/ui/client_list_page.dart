@@ -721,6 +721,27 @@ class _ClientListPageState extends State<ClientListPage> {
           ),
         ],
       ),
+      bottomNavigationBar: Container(
+        height: 50,
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Developed by zyverse.dev',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text('Crafting Digital Realities | 01024375442', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

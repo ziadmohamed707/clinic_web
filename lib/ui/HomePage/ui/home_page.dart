@@ -1,46 +1,16 @@
-import 'package:physioprime/helper/initialize_hive.dart';
-import 'package:physioprime/ui/LoginPage/bloc/auth_bloc.dart';
 import 'package:physioprime/ui/LoginPage/models/user_model.dart';
 import 'package:physioprime/ui/ScheduleGridPade/ui/schedule_grid_pade.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
+  final UserModel user;
+
+  const HomePage({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
-    final user = context.select((AuthBloc bloc) => bloc.state.userModel);
-
-    return FutureBuilder(
-      future: initializeHive(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Scaffold(
-            body: Center(
-              child: Text(
-                'Error initializing local data: ${snapshot.error}',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          );
-        }
-
-        if (user == null) {
-          return const Scaffold(
-            body: Center(child: Text('User not logged in')),
-          );
-        }
-
-        return ScheduleGridScreen(user: user);
-      },
-    );
+    // The HomePage now directly returns the ScheduleGridScreen,
+    // receiving the authenticated user model from the AuthStateListener.
+    return ScheduleGridScreen(user: user);
   }
 }

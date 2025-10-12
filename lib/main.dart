@@ -10,7 +10,8 @@ import 'package:physioprime/ui/LoginPage/ui/login_page.dart';
 import 'package:physioprime/ui/LoginPage/bloc/auth_bloc.dart';
 import 'package:physioprime/ui/LoginPage/bloc/auth_state.dart';
 import 'package:physioprime/ui/LoginPage/repository/auth_repository.dart';
-import 'package:physioprime/helper/initialize_hive.dart'; // Import your Hive initializer
+import 'package:physioprime/helper/initialize_hive.dart';
+import 'package:physioprime/ui/ManageUserPage/ui/manage_users_page.dart'; // Import your Hive initializer
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -152,7 +153,9 @@ class AuthStateListener extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        return state.isAuthenticated ? const HomePage() : LoginScreen();
+        return state.isAuthenticated && state.userModel != null
+            ? HomePage(user: state.userModel!)
+            : LoginScreen();
       },
     );
   }
