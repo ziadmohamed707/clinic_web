@@ -1,11 +1,11 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 
-import 'package:physioprime/ui/add_client_page.dart';
-import 'package:physioprime/ui/client_list_page.dart';
-import 'package:physioprime/ui/manage_doctors_page.dart'; // Add this
-import 'package:physioprime/ui/financial_management_page.dart';
-import 'package:physioprime/ui/packages_page.dart';
-import 'package:physioprime/widgets/state_card.dart';
+import 'package:physioone/ui/add_client_page.dart';
+import 'package:physioone/ui/client_list_page.dart';
+import 'package:physioone/ui/manage_doctors_page.dart'; // Add this
+import 'package:physioone/ui/financial_management_page.dart';
+import 'package:physioone/ui/packages_page.dart';
+import 'package:physioone/widgets/state_card.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -50,7 +50,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
+  final emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isRegistering = false;
@@ -60,12 +60,12 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       if (_isRegistering) {
         await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
+          email: emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
       } else {
         await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
+          email: emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
       }
@@ -108,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             // Add the logo here
             Image.asset(
-              'assets/phsioprime_logo.jpg', // Path to your logo
+              'assets/physioone_logo.jpg', // Path to your logo
               height: 100, // Adjust height as needed
             ),
             SizedBox(height: 32), // Spacing after the logo
@@ -121,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             SizedBox(height: 32), // Increased spacing
             TextField(
-              controller: _emailController,
+              controller: emailController,
               decoration: InputDecoration(
                 labelText: 'Email',
                 border: OutlineInputBorder(
@@ -193,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -1263,9 +1263,9 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       ).format(selectedDate);
       final String message = '''Hello ${selectedClient['name']},
 
-PHYSIO PRIME CLINIC
+Physio One CLINIC
 "Cairo Stadium Club"
-عياده Physio Prime تذكركم بمعادكم يوم $appointmentDate
+عياده Physio One تذكركم بمعادكم يوم $appointmentDate
 الساعة $timeSlot
 
 برجاء العلم بأن مدة الانتظار من 0 إلى 15 دقيقه
@@ -1275,7 +1275,7 @@ PHYSIO PRIME CLINIC
 
 رقم الفرع
 
-Physio Prime clinic reminds you about your session on $appointmentDate at $timeSlot
+Physio One clinic reminds you about your session on $appointmentDate at $timeSlot
 
 Please note that the waiting time ranges from 0 to 15 minutes
 Please be informed that any delay will be calculated from the session duration.
@@ -1566,7 +1566,7 @@ See you & Have a nice day''';
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               Image.asset(
-                                'assets/phsioprime_logo.jpg', // Replace with your logo path
+                                'assets/physioone_logo.jpg', // Replace with your logo path
                                 height: 200,
                               ),
                               SizedBox(height: 8),
@@ -1731,7 +1731,7 @@ See you & Have a nice day''';
                               ),
                               child: Center(
                                 child: Image.asset(
-                                  'assets/phsioprime_logo.jpg',
+                                  'assets/physioone_logo.jpg',
                                   height:
                                       90, // Adjusted height to fit padding and border
                                   width: 110, // Adjusted width

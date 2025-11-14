@@ -2,18 +2,18 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:physioprime/core/app_consts/app_consts.dart';
-import 'package:physioprime/main.dart';
-import 'package:physioprime/ui/ClientListPage/ui/client_list_page.dart';
-import 'package:physioprime/ui/FinancialManagementPage/ui/financial_management_page.dart';
-import 'package:physioprime/ui/LoginPage/bloc/auth_bloc.dart';
-import 'package:physioprime/ui/LoginPage/bloc/auth_event.dart';
-import 'package:physioprime/ui/LoginPage/models/user_model.dart';
-import 'package:physioprime/ui/LoginPage/repository/auth_repository.dart';
-import 'package:physioprime/ui/LoginPage/ui/login_page.dart';
-import 'package:physioprime/ui/ManageDoctorPage/ui/manage_doctors_page.dart';
-import 'package:physioprime/ui/ManageUserPage/ui/manage_users_page.dart';
-import 'package:physioprime/ui/PackagesPage/ui/packages_page.dart';
+import 'package:physioone/core/app_consts/app_consts.dart';
+import 'package:physioone/main.dart';
+import 'package:physioone/ui/ClientListPage/ui/client_list_page.dart';
+import 'package:physioone/ui/FinancialManagementPage/ui/financial_management_page.dart';
+import 'package:physioone/ui/LoginPage/bloc/auth_bloc.dart';
+import 'package:physioone/ui/LoginPage/bloc/auth_event.dart';
+import 'package:physioone/ui/LoginPage/models/user_model.dart';
+import 'package:physioone/ui/LoginPage/repository/auth_repository.dart';
+import 'package:physioone/ui/LoginPage/ui/login_page.dart';
+import 'package:physioone/ui/ManageDoctorPage/ui/manage_doctors_page.dart';
+import 'package:physioone/ui/ManageUserPage/ui/manage_users_page.dart';
+import 'package:physioone/ui/PackagesPage/ui/packages_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -21,10 +21,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:physioprime/ui/ScheduleGridPade/widget/buildStatsCard.dart';
-import 'package:physioprime/ui/billPaymentScreen/ui/bill_notification_screen.dart';
-import 'package:physioprime/ui/billPaymentScreen/ui/system_services_page.dart';
+import 'package:physioone/ui/ScheduleGridPade/widget/buildStatsCard.dart';
+import 'package:physioone/ui/billPaymentScreen/ui/bill_notification_screen.dart';
+import 'package:physioone/ui/billPaymentScreen/ui/system_services_page.dart';
+import 'package:physioone/hr_system/ui/hr_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:physioone/hr_system/ui/location_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ScheduleGridScreen extends StatefulWidget {
   final UserModel user;
@@ -54,8 +57,13 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
   StreamSubscription? _doctorsSubscription;
 
   Timer? _timer;
+  Timer? _locationTimer;
   DateTime _currentTime = DateTime.now();
   String _storageUsage = 'Loading...';
+  final LocationService _locationService = LocationService();
+  String _currentLocationStatus = 'Fetching location...';
+  Position? _currentPosition;
+  bool _isFetchingLocation = false;
 
   @override
   void initState() {
@@ -69,6 +77,12 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       }
     });
     _listenToStorageUsage();
+    // Fetch location immediately on load
+    _getCurrentLocation();
+    // Then, set up a timer to fetch it again every minute
+    _locationTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) _getCurrentLocation();
+    });
   }
 
   @override
@@ -77,6 +91,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     _clientsSubscription?.cancel();
     _doctorsSubscription?.cancel();
     _timer?.cancel();
+    _locationTimer?.cancel();
     super.dispose();
   }
 
@@ -122,12 +137,12 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     _clientsSubscription = _clientsCollection.snapshots().listen((snapshot) {
       for (var change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.removed) {
-          clientBox.delete(change.doc.id);
+          // The ID inside the document is now the source of truth
+          final data = change.doc.data() as Map<dynamic, dynamic>?;
+          clientBox.delete(data?['id']?.toString() ?? change.doc.id);
         } else {
-          clientBox.put(
-            change.doc.id,
-            change.doc.data() as Map<dynamic, dynamic>,
-          );
+          final data = change.doc.data() as Map<String, dynamic>?;
+          clientBox.put(data?['id']?.toString() ?? change.doc.id, data ?? {});
         }
       }
       if (mounted) setState(() {});
@@ -138,8 +153,10 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     ) {
       for (var change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.removed) {
-          box.delete(change.doc.id);
+          final data = change.doc.data() as Map<dynamic, dynamic>?;
+          box.delete(data?['id']?.toString() ?? change.doc.id);
         } else {
+          // The key for appointments is composite, so we don't change it.
           box.put(change.doc.id, change.doc.data() as Map<dynamic, dynamic>);
         }
       }
@@ -150,16 +167,65 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     _doctorsSubscription = _doctorsCollection.snapshots().listen((snapshot) {
       for (var change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.removed) {
-          _doctorsBox.delete(change.doc.id);
+          final data = change.doc.data() as Map<dynamic, dynamic>?;
+          _doctorsBox.delete(data?['id']?.toString() ?? change.doc.id);
         } else {
-          _doctorsBox.put(
-            change.doc.id,
-            change.doc.data() as Map<dynamic, dynamic>,
-          );
+          final data = change.doc.data() as Map<String, dynamic>?;
+          _doctorsBox.put(data?['id']?.toString() ?? change.doc.id, data ?? {});
         }
       }
       _loadAvailableDoctorsForSelectedDate();
     }, onError: (e) => _showSnackBar('Doctor sync error: $e', Colors.red));
+  }
+
+  Future<void> _getCurrentLocation() async {
+    if (_isFetchingLocation) return;
+    if (mounted) {
+      setState(() {
+        _isFetchingLocation = true;
+        _currentLocationStatus = 'Fetching location...';
+      });
+    }
+
+    try {
+      final position = await _locationService.getCurrentPosition();
+      final address = await _locationService.getAddressFromPosition(position);
+      if (mounted) {
+        setState(() {
+          _currentLocationStatus =
+              '$address (Accuracy: ${position.accuracy.toStringAsFixed(0)}m)';
+          _currentPosition = position;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _currentLocationStatus =
+              'Location unavailable. ${e.toString().replaceFirst("Exception: ", "")}';
+          _currentPosition = null;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isFetchingLocation = false);
+      }
+    }
+  }
+
+  Future<void> _openLocationInMap() async {
+    if (_currentPosition != null) {
+      final lat = _currentPosition!.latitude;
+      final lng = _currentPosition!.longitude;
+      final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        _showSnackBar('Could not open map.', Colors.red);
+      }
+    } else {
+      _showSnackBar('Location not available to show on map.', Colors.orange);
+    }
   }
 
   void _listenToStorageUsage() {
@@ -588,7 +654,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                   child: Container(
-                    height: 80,
+                    height: 120,
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.6),
@@ -634,6 +700,30 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                                     ),
                                   ),
                                 ],
+                              ),
+                              const SizedBox(height: 4),
+                              InkWell(
+                                onTap: _openLocationInMap,
+                                borderRadius: BorderRadius.circular(4),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_on,
+                                      color: Colors.grey.shade600,
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        _currentLocationStatus,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -941,7 +1031,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.white,
             blurRadius: 20, // Cannot be
             offset: Offset(5, 0),
           ),
@@ -1021,7 +1111,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(45),
                                   child: Image.asset(
-                                    'assets/phsioprime_logo.jpg',
+                                    'assets/physioone_logo.jpg',
                                     fit: BoxFit.cover,
                                   ),
                                 ),
@@ -1269,6 +1359,25 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => ManageUsersPage(),
+                                ),
+                              ),
+                        ),
+                        SizedBox(height: 12),
+                        _buildModernSidebarItem(
+                          icon: Icons.groups_3_rounded,
+                          title: 'HR Management',
+                          subtitle: 'Employee & Payroll System',
+                          gradient: [
+                            Colors.pink.shade400,
+                            Colors.pink.shade600,
+                          ],
+                          onTap:
+                              () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) {
+                                    return HRMainScreen(user: widget.user);
+                                  },
                                 ),
                               ),
                         ),

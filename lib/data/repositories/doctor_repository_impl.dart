@@ -1,7 +1,7 @@
 // lib/data/repositories/doctor_repository_impl.dart
-import 'package:physioprime/domain/entities/doctor.dart';
-import 'package:physioprime/domain/repositories/doctor_repository.dart';
-import 'package:physioprime/data/models/doctor_model.dart';
+import 'package:physioone/domain/entities/doctor.dart';
+import 'package:physioone/domain/repositories/doctor_repository.dart';
+import 'package:physioone/data/models/doctor_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
@@ -62,9 +62,9 @@ class DoctorRepositoryImpl implements DoctorRepository {
 
 
 // // lib/data/repositories/doctor_repository_impl.dart
-// import 'package:physioprime/domain/entities/doctor.dart';
-// import 'package:physioprime/domain/repositories/doctor_repository.dart';
-// import 'package:physioprime/data/models/doctor_model.dart';
+// import 'package:physioone/domain/entities/doctor.dart';
+// import 'package:physioone/domain/repositories/doctor_repository.dart';
+// import 'package:physioone/data/models/doctor_model.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:intl/intl.dart';

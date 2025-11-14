@@ -1,4 +1,4 @@
-import 'package:physioprime/domain/entities/client_package.dart';
+import 'package:physioone/domain/entities/client_package.dart';
 import 'package:equatable/equatable.dart'; // For easier comparison if needed
 
 class Appointment extends Equatable {

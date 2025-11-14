@@ -1,5 +1,5 @@
 // lib/data/models/doctor_model.dart
-import 'package:physioprime/domain/entities/doctor.dart';
+import 'package:physioone/domain/entities/doctor.dart';
 
 class DoctorModel {
   final String id;

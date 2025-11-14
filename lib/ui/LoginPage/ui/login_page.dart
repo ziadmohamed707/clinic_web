@@ -1,9 +1,9 @@
-import 'package:physioprime/core/app_consts/app_consts.dart';
-import 'package:physioprime/main.dart';
-import 'package:physioprime/ui/HomePage/ui/home_page.dart';
-import 'package:physioprime/ui/LoginPage/bloc/auth_bloc.dart';
-import 'package:physioprime/ui/LoginPage/bloc/auth_event.dart';
-import 'package:physioprime/ui/LoginPage/bloc/auth_state.dart';
+import 'package:physioone/core/app_consts/app_consts.dart';
+import 'package:physioone/main.dart';
+import 'package:physioone/ui/HomePage/ui/home_page.dart';
+import 'package:physioone/ui/LoginPage/bloc/auth_bloc.dart';
+import 'package:physioone/ui/LoginPage/bloc/auth_event.dart';
+import 'package:physioone/ui/LoginPage/bloc/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,10 +21,10 @@ class _LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
-  final _emailController = TextEditingController();
+  final emailController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
 
   bool _isRegistering = false;
@@ -81,7 +81,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    emailController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     _fadeController.dispose();
@@ -91,10 +91,10 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
   }
 
   void _authenticate() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!formKey.currentState!.validate()) return;
 
     if (_isRegistering) {
-      final email = _emailController.text.trim();
+      final email = emailController.text.trim();
       final username = _usernameController.text.trim();
       final password = _passwordController.text.trim();
 
@@ -310,7 +310,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.asset(
-                      'assets/phsioprime_logo.jpg',
+                      'assets/physioone_logo.jpg',
                       height: isDesktop ? 100 : 80, // Reduced logo size
                       width: isDesktop ? 100 : 80,
                       fit: BoxFit.cover,
@@ -397,7 +397,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(40),
             child: Image.asset(
-              'assets/phsioprime_logo.jpg',
+              'assets/physioone_logo.jpg',
               height: 60,
               width: 60,
               fit: BoxFit.cover,
@@ -447,7 +447,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
               border: Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
             ),
             child: Form(
-              key: _formKey,
+              key: formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -485,7 +485,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
         const SizedBox(height: 8),
         Text(
           _isRegistering
-              ? 'Join PhysioPrime to manage your practice'
+              ? 'Join physioone to manage your practice'
               : 'Sign in to access your dashboard',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: Colors.grey.shade600,
@@ -531,7 +531,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
       key: const ValueKey('register'),
       children: [
         _buildWebTextField(
-          controller: _emailController,
+          controller: emailController,
           labelText: 'Email Address',
           hintText: 'Enter your professional email',
           prefixIcon: Icons.email_outlined,

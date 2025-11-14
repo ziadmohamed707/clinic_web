@@ -1,7 +1,7 @@
 // lib/data/repositories/client_repository_impl.dart
-import 'package:physioprime/domain/entities/client.dart';
-import 'package:physioprime/domain/repositories/client_repository.dart';
-import 'package:physioprime/data/models/client_model.dart';
+import 'package:physioone/domain/entities/client.dart';
+import 'package:physioone/domain/repositories/client_repository.dart';
+import 'package:physioone/data/models/client_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 

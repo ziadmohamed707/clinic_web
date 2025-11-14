@@ -1,5 +1,5 @@
 // lib/domain/entities/client.dart
-import 'package:physioprime/domain/entities/client_package.dart';
+import 'package:physioone/domain/entities/client_package.dart';
 import 'package:equatable/equatable.dart';
 
 class Client extends Equatable {

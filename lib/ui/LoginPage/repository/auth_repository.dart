@@ -1,7 +1,7 @@
 // lib/ui/LoginPage/repository/auth_repository.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:physioprime/ui/LoginPage/models/user_model.dart';
+import 'package:physioone/ui/LoginPage/models/user_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -16,7 +16,7 @@ class AuthRepository {
   Stream<UserModel?> get currentUserStream => _currentUserController.stream;
 
   AuthRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Signs in a user - NO need to reinitialize Hive
   Future<UserModel> signIn({
@@ -24,12 +24,13 @@ class AuthRepository {
     required String password,
     bool keepLoggedIn = true,
   }) async {
-    final querySnapshot = await _firestore
-        .collection('users')
-        .where('username', isEqualTo: username)
-        .where('password', isEqualTo: password)
-        .limit(1)
-        .get();
+    final querySnapshot =
+        await _firestore
+            .collection('users')
+            .where('username', isEqualTo: username)
+            .where('password', isEqualTo: password)
+            .limit(1)
+            .get();
 
     if (querySnapshot.docs.isEmpty) {
       throw Exception('Invalid username or password.');
@@ -37,17 +38,16 @@ class AuthRepository {
 
     final userDoc = querySnapshot.docs.first;
     final userModel = UserModel.fromMap(userDoc.data());
-    
+
     // Update current user stream
     _currentUserController.add(userModel);
-    
+
     if (keepLoggedIn) {
       await saveUserSession(userModel);
-      
     } else {
       await clearUserSession();
     }
-    
+
     print('User signed in: ${userModel.username}');
     return userModel;
   }
@@ -57,13 +57,13 @@ class AuthRepository {
     try {
       // Clear user session from Hive
       await clearUserSession();
-      
+
       // Clear any other user-specific data if needed
       await _clearUserSpecificData();
-      
+
       // Update current user stream
       _currentUserController.add(null);
-      
+
       print('User signed out successfully');
     } catch (e) {
       throw Exception('Failed to sign out: $e');
@@ -77,10 +77,9 @@ class AuthRepository {
       if (Hive.isBoxOpen('userBox')) {
         await Hive.box('userBox').clear();
       }
-      
+
       // You can clear specific keys instead of entire boxes
       // await Hive.box('someBox').delete('userSpecificKey');
-      
     } catch (e) {
       print('Error clearing user-specific data: $e');
     }
@@ -105,10 +104,10 @@ class AuthRepository {
         print('UserSession box is not open');
         return null;
       }
-      
+
       final box = Hive.box(_userSessionBoxName);
       final userData = box.get(_currentUserKey);
-      
+
       if (userData != null && userData is Map<dynamic, dynamic>) {
         return UserModel.fromMap(Map<String, dynamic>.from(userData));
       }
@@ -157,7 +156,7 @@ class AuthRepository {
 
 // import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:hive_flutter/hive_flutter.dart';
-// import 'package:physioprime/ui/LoginPage/models/user_model.dart'; // Import your UserModel
+// import 'package:physioone/ui/LoginPage/models/user_model.dart'; // Import your UserModel
 // import 'package:uuid/uuid.dart';
 // import 'package:hive/hive.dart'; // Import Hive
 // import 'package:rxdart/rxdart.dart';
@@ -393,7 +392,7 @@ class AuthRepository {
 // // import 'package:cloud_firestore/cloud_firestore.dart';
 // // import 'package:firebase_auth/firebase_auth.dart';
 // // import 'package:hive/hive.dart';
-// // import 'package:physioprime/helper/initialize_hive.dart'; // Assuming this helper exists
+// // import 'package:physioone/helper/initialize_hive.dart'; // Assuming this helper exists
 
 // // class AuthRepository {
 // //   final FirebaseAuth _firebaseAuth;

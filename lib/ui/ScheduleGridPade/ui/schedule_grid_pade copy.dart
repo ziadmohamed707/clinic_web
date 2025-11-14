@@ -1,16 +1,16 @@
-// import 'package:physioprime/core/app_consts/app_consts.dart';
-// import 'package:physioprime/main.dart';
-// import 'package:physioprime/ui/ClientListPage/ui/client_list_page.dart';
-// import 'package:physioprime/ui/FinancialManagementPage/ui/financial_management_page.dart';
-// import 'package:physioprime/ui/LoginPage/bloc/auth_bloc.dart';
-// import 'package:physioprime/ui/LoginPage/bloc/auth_event.dart';
-// import 'package:physioprime/ui/LoginPage/models/user_model.dart';
-// import 'package:physioprime/ui/LoginPage/repository/auth_repository.dart';
-// import 'package:physioprime/ui/LoginPage/ui/login_page.dart';
-// import 'package:physioprime/ui/ManageDoctorPage/ui/manage_doctors_page.dart';
-// import 'package:physioprime/ui/ManageUserPage/ui/manage_users_page.dart';
-// import 'package:physioprime/ui/PackagesPage/ui/packages_page.dart';
-// import 'package:physioprime/ui/ScheduleGridPade/helper/schedule_grid_controller.dart';
+// import 'package:physioone/core/app_consts/app_consts.dart';
+// import 'package:physioone/main.dart';
+// import 'package:physioone/ui/ClientListPage/ui/client_list_page.dart';
+// import 'package:physioone/ui/FinancialManagementPage/ui/financial_management_page.dart';
+// import 'package:physioone/ui/LoginPage/bloc/auth_bloc.dart';
+// import 'package:physioone/ui/LoginPage/bloc/auth_event.dart';
+// import 'package:physioone/ui/LoginPage/models/user_model.dart';
+// import 'package:physioone/ui/LoginPage/repository/auth_repository.dart';
+// import 'package:physioone/ui/LoginPage/ui/login_page.dart';
+// import 'package:physioone/ui/ManageDoctorPage/ui/manage_doctors_page.dart';
+// import 'package:physioone/ui/ManageUserPage/ui/manage_users_page.dart';
+// import 'package:physioone/ui/PackagesPage/ui/packages_page.dart';
+// import 'package:physioone/ui/ScheduleGridPade/helper/schedule_grid_controller.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
 // import 'package:flutter/foundation.dart';
@@ -19,7 +19,7 @@
 // import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:intl/intl.dart';
 // import 'package:url_launcher/url_launcher.dart';
-// import 'package:physioprime/widgets/state_card.dart'; // Ensure this is imported if used
+// import 'package:physioone/widgets/state_card.dart'; // Ensure this is imported if used
 // import 'package:restart_app/restart_app.dart';
 
 // class ScheduleGridScreen extends StatefulWidget {
@@ -1632,9 +1632,9 @@
 //       ).format(selectedDate);
 //       final String message = '''Hello ${selectedClient['name']},
 
-// PHYSIO PRIME CLINIC
+// Physio One CLINIC
 // Cairo Stadium Club - Squash Stadium Complex https://maps.app.goo.gl/WGZ44exa2dX7tiiz9 
-// عياده Physio Prime تذكركم بمعادكم يوم $appointmentDate
+// عياده Physio One تذكركم بمعادكم يوم $appointmentDate
 // الساعة $timeSlot
 
 // برجاء العلم بأن مدة الانتظار من 0 إلى 15 دقيقه
@@ -1644,7 +1644,7 @@
 
 // رقم الفرع
 
-// Physio Prime clinic reminds you about your session on $appointmentDate at $timeSlot
+// Physio One clinic reminds you about your session on $appointmentDate at $timeSlot
 
 // Please note that the waiting time ranges from 0 to 15 minutes
 // Please be informed that any delay will be calculated from the session duration.
@@ -1947,7 +1947,7 @@
 //                             mainAxisAlignment: MainAxisAlignment.end,
 //                             children: [
 //                               Image.asset(
-//                                 'assets/phsioprime_logo.jpg', // Replace with your logo path
+//                                 'assets/physioone_logo.jpg', // Replace with your logo path
 //                                 height: 200,
 //                               ),
 //                               SizedBox(height: 8),
@@ -2164,7 +2164,7 @@
 //                               ),
 //                               child: Center(
 //                                 child: Image.asset(
-//                                   'assets/phsioprime_logo.jpg',
+//                                   'assets/physioone_logo.jpg',
 //                                   height:
 //                                       90, // Adjusted height to fit padding and border
 //                                   width: 110, // Adjusted width

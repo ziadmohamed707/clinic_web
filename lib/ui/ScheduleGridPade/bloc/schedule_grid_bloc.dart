@@ -1,8 +1,8 @@
-import 'package:physioprime/core/errors/failures.dart';
-import 'package:physioprime/core/usecases/usecase.dart';
-import 'package:physioprime/domain/usecases/add_client.dart';
-import 'package:physioprime/domain/usecases/get_clients.dart';
-import 'package:physioprime/domain/usecases/get_doctors.dart';
+import 'package:physioone/core/errors/failures.dart';
+import 'package:physioone/core/usecases/usecase.dart';
+import 'package:physioone/domain/usecases/add_client.dart';
+import 'package:physioone/domain/usecases/get_clients.dart';
+import 'package:physioone/domain/usecases/get_doctors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:dartz/dartz.dart';

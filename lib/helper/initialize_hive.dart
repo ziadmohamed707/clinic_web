@@ -1,4 +1,4 @@
-import 'package:physioprime/utils/hive_adapters.dart';
+import 'package:physioone/utils/hive_adapters.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -14,7 +14,7 @@ Future<void> initializeHive() async {
 
   try {
     await Hive.initFlutter();
-    
+
     // Register adapters only if they haven't been registered yet
     // TimestampAdapter uses typeId 50 (changed to avoid conflicts)
     if (!Hive.isAdapterRegistered(50)) {
@@ -23,19 +23,19 @@ Future<void> initializeHive() async {
     } else {
       print('TimestampAdapter (typeId: 50) already registered');
     }
-    
+
     // Register other adapters if you have them
     // Example:
     // if (!Hive.isAdapterRegistered(100)) {
     //   Hive.registerAdapter(UserModelAdapter());
     //   print('UserModelAdapter registered successfully');
     // }
-    
+
     // if (!Hive.isAdapterRegistered(101)) {
     //   Hive.registerAdapter(AppointmentModelAdapter());
     //   print('AppointmentModelAdapter registered successfully');
     // }
-    
+
     // Open boxes safely
     await _openBoxSafely('appointments');
     await _openBoxSafely('clients');
@@ -43,16 +43,15 @@ Future<void> initializeHive() async {
     await _openBoxSafely('users');
     await _openBoxSafely('userSession');
     await _openBoxSafely('userBox'); // For the local storage service
-    
+
     // Initialize default values
     final clientsBox = Hive.box('clients');
     if (!clientsBox.containsKey('lastId')) {
       await clientsBox.put('lastId', 0);
     }
-    
+
     _isHiveInitialized = true;
     print('Hive initialized successfully');
-    
   } catch (e) {
     print('Error initializing Hive: $e');
     // Reset flag on error so we can try again
@@ -96,7 +95,7 @@ Future<void> initializeLocalStorage() async {
   if (!_isHiveInitialized) {
     await initializeHive();
   }
-  
+
   // The box should already be open from initializeHive(), but check anyway
   if (!Hive.isBoxOpen(_userBoxName)) {
     await Hive.openBox<String>(_userBoxName);

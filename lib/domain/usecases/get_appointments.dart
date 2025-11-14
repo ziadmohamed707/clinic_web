@@ -1,6 +1,6 @@
 // lib/domain/usecases/get_appointments.dart
-import 'package:physioprime/domain/entities/appointment.dart';
-import 'package:physioprime/domain/repositories/appointment_repository.dart';
+import 'package:physioone/domain/entities/appointment.dart';
+import 'package:physioone/domain/repositories/appointment_repository.dart';
 
 class GetAppointments {
   final AppointmentRepository repository;

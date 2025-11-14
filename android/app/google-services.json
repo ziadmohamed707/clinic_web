@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "397635976577",
-    "project_id": "physioprimez",
-    "storage_bucket": "physioprimez.firebasestorage.app"
+    "project_number": "419143087841",
+    "project_id": "physioone-74446",
+    "storage_bucket": "physioone-74446.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:397635976577:android:1be6726dea2a5ac20cbc80",
+        "mobilesdk_app_id": "1:419143087841:android:6b9e5d627b23913bab29a0",
         "android_client_info": {
           "package_name": "com.example.clinic_management_system"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA4mMjVB-Wd3b50Gzk2AOcKVq492SniW-Q"
+          "current_key": "AIzaSyBFiwl54gxomWJoG2pES6qcsQv0v3_xboI"
         }
       ],
       "services": {

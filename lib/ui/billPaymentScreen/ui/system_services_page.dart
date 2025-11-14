@@ -93,7 +93,7 @@ class _SystemServicesPageState extends State<SystemServicesPage> {
       scheme: 'mailto',
       path: 'zyverse.dev@gmail.com', // Your support/sales email
       query:
-          'subject=Service Request: ${service.name}&body=I would like to request the following service for my PhysioPrime system:\n\nService: ${service.name}\nService ID: ${service.id}\n\nPlease provide me with more information and next steps.\n\nThank you!',
+          'subject=Service Request: ${service.name}&body=I would like to request the following service for my physioone system:\n\nService: ${service.name}\nService ID: ${service.id}\n\nPlease provide me with more information and next steps.\n\nThank you!',
     );
 
     try {

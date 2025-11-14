@@ -1,10 +1,10 @@
 // lib/ui/manage_users_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_bloc.dart';
-import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_event.dart';
-import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_state.dart';
-import 'package:physioprime/ui/ManageUserPage/repository/user_repository.dart';
+import 'package:physioone/ui/ManageUserPage/bloc/manage_users_bloc.dart';
+import 'package:physioone/ui/ManageUserPage/bloc/manage_users_event.dart';
+import 'package:physioone/ui/ManageUserPage/bloc/manage_users_state.dart';
+import 'package:physioone/ui/ManageUserPage/repository/user_repository.dart';
 
 class ManageUsersPage extends StatelessWidget {
   const ManageUsersPage({Key? key}) : super(key: key);
@@ -202,7 +202,7 @@ class _AddEditUserDialog extends StatefulWidget {
 }
 
 class __AddEditUserDialogState extends State<_AddEditUserDialog> {
-  final _formKey = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final List<String> _availableRoles = ['admin', 'desk', 'doctor'];
@@ -229,7 +229,7 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
   }
 
   void _submitForm() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!formKey.currentState!.validate()) return;
     if (_selectedRole == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -276,7 +276,7 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
       title: Text(_isEditing ? 'Edit User' : 'Add New User'),
       content: SingleChildScrollView(
         child: Form(
-          key: _formKey,
+          key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -355,9 +355,9 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
 
 
 // // lib/ui/manage_users_page.dart
-// import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_bloc.dart';
-// import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_event.dart';
-// import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_state.dart';
+// import 'package:physioone/ui/ManageUserPage/bloc/manage_users_bloc.dart';
+// import 'package:physioone/ui/ManageUserPage/bloc/manage_users_event.dart';
+// import 'package:physioone/ui/ManageUserPage/bloc/manage_users_state.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -529,7 +529,7 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
 // }
 
 // class _AddEditUserDialogState extends State<_AddEditUserDialog> {
-//   final _formKey = GlobalKey<FormState>();
+//   final formKey = GlobalKey<FormState>();
 //   final _usernameController = TextEditingController();
 //   final _passwordController = TextEditingController();
 //   final List<String> _availableRoles = ['admin', 'desk', 'doctor'];
@@ -554,7 +554,7 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
 //   }
 
 //   void _submitForm() {
-//     if (_formKey.currentState!.validate()) {
+//     if (formKey.currentState!.validate()) {
 //       if (_selectedRole == null) {
 //         ScaffoldMessenger.of(context).showSnackBar(
 //           const SnackBar(
@@ -598,7 +598,7 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
 //       title: Text(isEditing ? 'Edit user' : 'Add New User'),
 //       content: SingleChildScrollView(
 //         child: Form(
-//           key: _formKey,
+//           key: formKey,
 //           child: Column(
 //             mainAxisSize: MainAxisSize.min,
 //             children: [
@@ -689,8 +689,8 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
 //   late Box _usersBox;
 //   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 //   List<Map<String, dynamic>> _users = [];
-//   final _formKey = GlobalKey<FormState>();
-//   final _usernameController = TextEditingController(); // Changed from _nameController
+//   final formKey = GlobalKey<FormState>();
+//   final _usernameController = TextEditingController(); // Changed from nameController
 //   final _passwordController = TextEditingController(); // Added for password
 
 //   // Define available roles
@@ -754,7 +754,7 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
 //               title: Text(isEditing ? 'Edit user' : 'Add New User'),
 //               content: SingleChildScrollView(
 //                 child: Form(
-//                   key: _formKey,
+//                   key: formKey,
 //                   child: Column(
 //                     mainAxisSize: MainAxisSize.min,
 //                     children: [
@@ -819,7 +819,7 @@ class __AddEditUserDialogState extends State<_AddEditUserDialog> {
 //                 ),
 //                 ElevatedButton(
 //                   onPressed: () async {
-//                     if (_formKey.currentState!.validate()) {
+//                     if (formKey.currentState!.validate()) {
 //                       if (_selectedRole == null) {
 //                         // Check if role is selected
 //                         ScaffoldMessenger.of(context).showSnackBar(

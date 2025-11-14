@@ -1,7 +1,7 @@
 // lib/data/repositories/appointment_repository_impl.dart
-import 'package:physioprime/domain/entities/appointment.dart';
-import 'package:physioprime/domain/repositories/appointment_repository.dart';
-import 'package:physioprime/data/models/appointment_model.dart';
+import 'package:physioone/domain/entities/appointment.dart';
+import 'package:physioone/domain/repositories/appointment_repository.dart';
+import 'package:physioone/data/models/appointment_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';

@@ -1,9 +1,9 @@
 // lib/domain/usecases/cancel_appointment.dart
-import 'package:physioprime/domain/entities/appointment.dart';
-import 'package:physioprime/domain/entities/client.dart';
-import 'package:physioprime/domain/entities/client_package.dart';
-import 'package:physioprime/domain/repositories/appointment_repository.dart';
-import 'package:physioprime/domain/repositories/client_repository.dart';
+import 'package:physioone/domain/entities/appointment.dart';
+import 'package:physioone/domain/entities/client.dart';
+import 'package:physioone/domain/entities/client_package.dart';
+import 'package:physioone/domain/repositories/appointment_repository.dart';
+import 'package:physioone/domain/repositories/client_repository.dart';
 import 'package:equatable/equatable.dart';
 
 class CancelAppointment {

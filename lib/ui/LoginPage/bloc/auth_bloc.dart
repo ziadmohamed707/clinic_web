@@ -1,9 +1,9 @@
 // lib/ui/LoginPage/bloc/auth_bloc.dart
 import 'package:bloc/bloc.dart';
-import 'package:physioprime/ui/LoginPage/bloc/auth_event.dart';
-import 'package:physioprime/ui/LoginPage/bloc/auth_state.dart';
-import 'package:physioprime/ui/LoginPage/models/user_model.dart';
-import 'package:physioprime/ui/LoginPage/repository/auth_repository.dart';
+import 'package:physioone/ui/LoginPage/bloc/auth_event.dart';
+import 'package:physioone/ui/LoginPage/bloc/auth_state.dart';
+import 'package:physioone/ui/LoginPage/models/user_model.dart';
+import 'package:physioone/ui/LoginPage/repository/auth_repository.dart';
 import 'dart:async'; // Import for StreamSubscription
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {

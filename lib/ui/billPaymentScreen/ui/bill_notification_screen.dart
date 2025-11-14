@@ -59,7 +59,7 @@ class _BillNotificationScreenState extends State<BillNotificationScreen> {
       // Collection is empty, let's add a sample bill.
       final sampleBill = {
         'id': 'initial-bill-${DateTime.now().millisecondsSinceEpoch}',
-        'serviceName': 'Welcome to PhysioPrime Billing',
+        'serviceName': 'Welcome to physioone Billing',
         'description':
             'This is your system billing area. Your bills for services like hosting, support, and updates will appear here.',
         'totalAmount': 0.00,

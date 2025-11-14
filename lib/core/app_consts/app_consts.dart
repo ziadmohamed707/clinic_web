@@ -1,5 +1,5 @@
 class AppConsts {
-  static const String appName = 'Physio Prime';
+  static const String appName = 'Physio One';
   static const String appVersion = '1.0.0';
   static const String apiBaseUrl = 'https://api.example.com';
   static const String supportEmail = 'support@example.com';
@@ -43,9 +43,9 @@ class AppConsts {
   ) {
     return '''Hello $clientName,
 
-PHYSIO PRIME CLINIC
+Physio One CLINIC
 Cairo Stadium Club - Squash Stadium Complex https://maps.app.goo.gl/WGZ44exa2dX7tiiz9 
-عياده Physio Prime تذكركم بمعادكم يوم $appointmentDate
+عياده Physio One تذكركم بمعادكم يوم $appointmentDate
 الساعة $timeSlot
 
 برجاء العلم بأن مدة الانتظار من 0 إلى 15 دقيقه
@@ -55,7 +55,7 @@ Cairo Stadium Club - Squash Stadium Complex https://maps.app.goo.gl/WGZ44exa2dX7
 
 رقم الفرع
 
-Physio Prime clinic reminds you about your session on $appointmentDate at $timeSlot
+Physio One clinic reminds you about your session on $appointmentDate at $timeSlot
 
 Please note that the waiting time ranges from 0 to 15 minutes
 Please be informed that any delay will be calculated from the session duration.

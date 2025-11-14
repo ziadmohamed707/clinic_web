@@ -2,14 +2,14 @@
 
 // import 'package:flutter/material.dart';
 // import 'package:hive_flutter/hive_flutter.dart';
-// import 'package:physioprime/core/app_consts/app_consts.dart';
-// import 'package:physioprime/ui/FinancialManagementPage/ui/financial_management_page.dart';
-// import 'package:physioprime/ui/LoginPage/models/user_model.dart';
-// import 'package:physioprime/ui/ManageDoctorPage/ui/manage_doctors_page.dart';
-// import 'package:physioprime/ui/ManageUserPage/ui/manage_users_page.dart';
-// import 'package:physioprime/ui/ScheduleGridPade/widget/buildModernSidebarItem.dart';
-// import 'package:physioprime/ui/billPaymentScreen/ui/bill_notification_screen.dart';
-// import 'package:physioprime/ui/billPaymentScreen/ui/system_services_page.dart';
+// import 'package:physioone/core/app_consts/app_consts.dart';
+// import 'package:physioone/ui/FinancialManagementPage/ui/financial_management_page.dart';
+// import 'package:physioone/ui/LoginPage/models/user_model.dart';
+// import 'package:physioone/ui/ManageDoctorPage/ui/manage_doctors_page.dart';
+// import 'package:physioone/ui/ManageUserPage/ui/manage_users_page.dart';
+// import 'package:physioone/ui/ScheduleGridPade/widget/buildModernSidebarItem.dart';
+// import 'package:physioone/ui/billPaymentScreen/ui/bill_notification_screen.dart';
+// import 'package:physioone/ui/billPaymentScreen/ui/system_services_page.dart';
 
 //  _buildSidebarContent(
 //     BuildContext context,
@@ -114,7 +114,7 @@
 //                                 child: ClipRRect(
 //                                   borderRadius: BorderRadius.circular(45),
 //                                   child: Image.asset(
-//                                     'assets/phsioprime_logo.jpg',
+//                                     'assets/physioone_logo.jpg',
 //                                     fit: BoxFit.cover,
 //                                   ),
 //                                 ),

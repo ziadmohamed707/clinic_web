@@ -1,5 +1,5 @@
 // lib/domain/repositories/doctor_repository.dart
-import 'package:physioprime/domain/entities/doctor.dart';
+import 'package:physioone/domain/entities/doctor.dart';
 
 abstract class DoctorRepository {
   Future<List<Doctor>> getAllDoctors();

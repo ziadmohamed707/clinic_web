@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Permissions for geolocation -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to your location to verify attendance at the workplace.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs access to your location to verify attendance at the workplace.</string>
 </dict>
 </plist>

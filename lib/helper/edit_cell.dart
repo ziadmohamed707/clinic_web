@@ -65,7 +65,9 @@ class _AppointmentDialog {
   }
 
   void _initializeData() {
-    final String formattedDateForKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+    final String formattedDateForKey = DateFormat(
+      'yyyy-MM-dd',
+    ).format(selectedDate);
     _key = '$formattedDateForKey-$timeSlot-$columnDoctorName';
 
     _existingAppointment = appointmentBox.get(
@@ -79,30 +81,36 @@ class _AppointmentDialog {
       },
     );
 
-    _allClients = clientBox.keys
-        .where((key) => key != 'lastId')
-        .map((key) => clientBox.get(key) as Map)
-        .toList();
+    _allClients =
+        clientBox.keys
+            .where((key) => key != 'lastId')
+            .map((key) => clientBox.get(key) as Map)
+            .toList();
   }
 
   Future<bool?> show(BuildContext context) async {
     return await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => _AppointmentDialogWidget(
-        existingAppointment: _existingAppointment,
-        allClients: _allClients,
-        timeSlot: timeSlot,
-        columnDoctorName: columnDoctorName,
-        selectedDate: selectedDate,
-        appointmentKey: _key,
-        onSave: _saveAppointment,
-        onCancel: _cancelAppointment,
-        onSendWhatsApp: _sendWhatsAppMessage,
-      ),
+      builder:
+          (dialogContext) => _AppointmentDialogWidget(
+            existingAppointment: _existingAppointment,
+            allClients: _allClients,
+            timeSlot: timeSlot,
+            columnDoctorName: columnDoctorName,
+            selectedDate: selectedDate,
+            appointmentKey: _key,
+            onSave: _saveAppointment,
+            onCancel: _cancelAppointment,
+            onSendWhatsApp: _sendWhatsAppMessage,
+          ),
     );
   }
 
-  Future<void> _saveAppointment(BuildContext context, Map? selectedClient, String doctor) async {
+  Future<void> _saveAppointment(
+    BuildContext context,
+    Map? selectedClient,
+    String doctor,
+  ) async {
     if (selectedClient == null) {
       _showSnackBar(context, 'Please select a client to save.', Colors.orange);
       return;
@@ -119,7 +127,7 @@ class _AppointmentDialog {
 
       appointmentBox.put(_key, appointmentData);
       await saveToFirestore(_key, appointmentData);
-      
+
       if (context.mounted) {
         Navigator.pop(context, true);
       }
@@ -156,37 +164,48 @@ class _AppointmentDialog {
   Future<bool?> _showCancelConfirmationDialog(BuildContext context) {
     return showDialog<bool>(
       context: context,
-      builder: (confirmDialogContext) => AlertDialog(
-        title: const Text('Cancel Appointment'),
-        content: const Text(
-          'Are you sure you want to cancel this appointment? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(confirmDialogContext, false),
-            child: const Text('No'),
+      builder:
+          (confirmDialogContext) => AlertDialog(
+            title: const Text('Cancel Appointment'),
+            content: const Text(
+              'Are you sure you want to cancel this appointment? This action cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(confirmDialogContext, false),
+                child: const Text('No'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(confirmDialogContext, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Yes, Cancel'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(confirmDialogContext, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Yes, Cancel'),
-          ),
-        ],
-      ),
     );
   }
 
-  Future<void> _sendWhatsAppMessage(BuildContext context, Map selectedClient) async {
+  Future<void> _sendWhatsAppMessage(
+    BuildContext context,
+    Map selectedClient,
+  ) async {
     try {
-      final String appointmentDate = DateFormat('dd-MM-yyyy').format(selectedDate);
-      final String message = _buildWhatsAppMessage(selectedClient['name'], appointmentDate);
+      final String appointmentDate = DateFormat(
+        'dd-MM-yyyy',
+      ).format(selectedDate);
+      final String message = _buildWhatsAppMessage(
+        selectedClient['name'],
+        appointmentDate,
+      );
 
       String phone = selectedClient['phone'].toString();
       if (!phone.startsWith('+')) {
         phone = '+2$phone'; // Egypt country code
       }
 
-      final Uri whatsappUri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+      final Uri whatsappUri = Uri.parse(
+        'https://wa.me/$phone?text=${Uri.encodeComponent(message)}',
+      );
 
       if (await canLaunchUrl(whatsappUri)) {
         await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
@@ -201,9 +220,9 @@ class _AppointmentDialog {
   String _buildWhatsAppMessage(String clientName, String appointmentDate) {
     return '''Hello $clientName,
 
-PHYSIO PRIME CLINIC
+Physio One CLINIC
 Cairo Stadium Club - Squash Stadium Complex https://maps.app.goo.gl/WGZ44exa2dX7tiiz9 
-عياده Physio Prime تذكركم بمعادكم يوم $appointmentDate
+عياده Physio One تذكركم بمعادكم يوم $appointmentDate
 الساعة $timeSlot
 
 برجاء العلم بأن مدة الانتظار من 0 إلى 15 دقيقه
@@ -213,7 +232,7 @@ Cairo Stadium Club - Squash Stadium Complex https://maps.app.goo.gl/WGZ44exa2dX7
 
 رقم الفرع
 
-Physio Prime clinic reminds you about your session on $appointmentDate at $timeSlot
+Physio One clinic reminds you about your session on $appointmentDate at $timeSlot
 
 Please note that the waiting time ranges from 0 to 15 minutes
 Please be informed that any delay will be calculated from the session duration.
@@ -225,13 +244,14 @@ Clinic number
 See you & Have a nice day''';
   }
 
-  void _showSnackBar(BuildContext context, String message, Color backgroundColor) {
+  void _showSnackBar(
+    BuildContext context,
+    String message,
+    Color backgroundColor,
+  ) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: backgroundColor,
-        ),
+        SnackBar(content: Text(message), backgroundColor: backgroundColor),
       );
     }
   }
@@ -261,7 +281,8 @@ class _AppointmentDialogWidget extends StatefulWidget {
   });
 
   @override
-  State<_AppointmentDialogWidget> createState() => _AppointmentDialogWidgetState();
+  State<_AppointmentDialogWidget> createState() =>
+      _AppointmentDialogWidgetState();
 }
 
 class _AppointmentDialogWidgetState extends State<_AppointmentDialogWidget> {
@@ -273,10 +294,12 @@ class _AppointmentDialogWidgetState extends State<_AppointmentDialogWidget> {
   @override
   void initState() {
     super.initState();
-    _doctorController = TextEditingController(text: widget.existingAppointment['doctor']);
+    _doctorController = TextEditingController(
+      text: widget.existingAppointment['doctor'],
+    );
     _searchController = TextEditingController();
     _filteredClients = List.from(widget.allClients);
-    
+
     _initializeSelectedClient();
   }
 
@@ -303,12 +326,13 @@ class _AppointmentDialogWidgetState extends State<_AppointmentDialogWidget> {
       if (query.isEmpty) {
         _filteredClients = List.from(widget.allClients);
       } else {
-        _filteredClients = widget.allClients.where((client) {
-          final name = client['name']?.toString().toLowerCase() ?? '';
-          final id = client['id']?.toString().toLowerCase() ?? '';
-          return name.contains(query.toLowerCase()) ||
-              id.contains(query.toLowerCase());
-        }).toList();
+        _filteredClients =
+            widget.allClients.where((client) {
+              final name = client['name']?.toString().toLowerCase() ?? '';
+              final id = client['id']?.toString().toLowerCase() ?? '';
+              return name.contains(query.toLowerCase()) ||
+                  id.contains(query.toLowerCase());
+            }).toList();
       }
     });
   }
@@ -346,9 +370,7 @@ class _AppointmentDialogWidgetState extends State<_AppointmentDialogWidget> {
       decoration: InputDecoration(
         labelText: 'Search Client by Name or ID',
         suffixIcon: const Icon(Icons.search),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
       ),
       autofocus: true,
       onChanged: _filterClients,
@@ -363,44 +385,54 @@ class _AppointmentDialogWidgetState extends State<_AppointmentDialogWidget> {
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8.0),
       ),
-      child: _filteredClients.isEmpty
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'No clients found. Add a new client or refine search.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-            )
-          : ListView.builder(
-              itemCount: _filteredClients.length,
-              itemBuilder: (context, index) {
-                final client = _filteredClients[index];
-                final isSelected = _selectedClient != null &&
-                    _selectedClient!['id'] == client['id'];
-
-                return ListTile(
-                  title: Text(
-                    '${client['name']}',
-                    style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
+      child:
+          _filteredClients.isEmpty
+              ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'No clients found. Add a new client or refine search.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
                   ),
-                  subtitle: Text('ID: ${client['id']}'),
-                  trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green) : null,
-                  onTap: () {
-                    setState(() {
-                      _selectedClient = client;
-                    });
-                  },
-                  tileColor: isSelected
-                      ? Theme.of(context).primaryColor.withOpacity(0.1)
-                      : null,
-                );
-              },
-            ),
+                ),
+              )
+              : ListView.builder(
+                itemCount: _filteredClients.length,
+                itemBuilder: (context, index) {
+                  final client = _filteredClients[index];
+                  final isSelected =
+                      _selectedClient != null &&
+                      _selectedClient!['id'] == client['id'];
+
+                  return ListTile(
+                    title: Text(
+                      '${client['name']}',
+                      style: TextStyle(
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    subtitle: Text('ID: ${client['id']}'),
+                    trailing:
+                        isSelected
+                            ? const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                            )
+                            : null,
+                    onTap: () {
+                      setState(() {
+                        _selectedClient = client;
+                      });
+                    },
+                    tileColor:
+                        isSelected
+                            ? Theme.of(context).primaryColor.withOpacity(0.1)
+                            : null,
+                  );
+                },
+              ),
     );
   }
 
@@ -409,9 +441,7 @@ class _AppointmentDialogWidgetState extends State<_AppointmentDialogWidget> {
       controller: _doctorController,
       decoration: InputDecoration(
         labelText: 'Assigned Doctor',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
       ),
     );
   }
@@ -421,9 +451,7 @@ class _AppointmentDialogWidgetState extends State<_AppointmentDialogWidget> {
       // Cancel Button
       TextButton(
         onPressed: () => Navigator.pop(context, false),
-        style: TextButton.styleFrom(
-          foregroundColor: Colors.grey[700],
-        ),
+        style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
         child: const Text('Cancel'),
       ),
 
@@ -440,7 +468,9 @@ class _AppointmentDialogWidgetState extends State<_AppointmentDialogWidget> {
 
       // Save Button
       ElevatedButton(
-        onPressed: () => widget.onSave(context, _selectedClient, _doctorController.text),
+        onPressed:
+            () =>
+                widget.onSave(context, _selectedClient, _doctorController.text),
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).primaryColor,
           foregroundColor: Colors.white,
@@ -452,10 +482,7 @@ class _AppointmentDialogWidgetState extends State<_AppointmentDialogWidget> {
       if (_selectedClient != null)
         TextButton.icon(
           icon: const Icon(Icons.chat, color: Colors.green),
-          label: const Text(
-            'WhatsApp',
-            style: TextStyle(color: Colors.green),
-          ),
+          label: const Text('WhatsApp', style: TextStyle(color: Colors.green)),
           onPressed: () => widget.onSendWhatsApp(context, _selectedClient!),
         ),
     ];

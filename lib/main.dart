@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart'; // Import hive_flutter
-import 'package:physioprime/core/app_consts/app_consts.dart';
+import 'package:physioone/core/app_consts/app_consts.dart';
+import 'package:physioone/core/app_colors.dart';
 
-import 'package:physioprime/firebase_options.dart';
-import 'package:physioprime/ui/HomePage/ui/home_page.dart';
-import 'package:physioprime/ui/LoginPage/ui/login_page.dart';
-import 'package:physioprime/ui/LoginPage/bloc/auth_bloc.dart';
-import 'package:physioprime/ui/LoginPage/bloc/auth_state.dart';
-import 'package:physioprime/ui/LoginPage/repository/auth_repository.dart';
-import 'package:physioprime/helper/initialize_hive.dart';
-import 'package:physioprime/ui/ManageUserPage/ui/manage_users_page.dart'; // Import your Hive initializer
+import 'package:physioone/firebase_options.dart';
+import 'package:physioone/ui/HomePage/ui/home_page.dart';
+import 'package:physioone/ui/LoginPage/ui/login_page.dart';
+import 'package:physioone/ui/LoginPage/bloc/auth_bloc.dart';
+import 'package:physioone/ui/LoginPage/bloc/auth_state.dart';
+import 'package:physioone/ui/LoginPage/repository/auth_repository.dart';
+import 'package:physioone/helper/initialize_hive.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,35 +38,21 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: AppConsts.appName,
           theme: ThemeData(
-            primaryColor: const Color(0xFF00796B),
-            primaryColorDark: const Color(0xFF004D40),
-            primaryColorLight: const Color(0xFF4DB6AC),
+            primaryColor: AppColors.primary,
+            primaryColorDark: AppColors.primaryDark,
+            primaryColorLight: AppColors.primaryLight,
             colorScheme: ColorScheme.fromSwatch(
-              primarySwatch: const MaterialColor(0xFF00796B, <int, Color>{
-                50: Color(0xFFE0F2F1),
-                100: Color(0xFFB2DFDB),
-                200: Color(0xFF80CBC4),
-                300: Color(0xFF4DB6AC),
-                400: Color(0xFF26A69A),
-                500: Color(0xFF009688),
-                600: Color(0xFF00897B),
-                700: Color(0xFF00796B),
-                800: Color(0xFF00695C),
-                900: Color(0xFF004D40),
-              }),
-            ).copyWith(
-              secondary: const Color(0xFF4CAF50),
-              error: Colors.redAccent,
-            ),
-            scaffoldBackgroundColor: const Color(0xFFFAFAFA),
+              primarySwatch: AppColors.primarySwatch,
+            ).copyWith(secondary: AppColors.secondary, error: AppColors.error),
+            scaffoldBackgroundColor: AppColors.background,
             appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF00796B),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
               elevation: 4,
               titleTextStyle: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: AppColors.white,
               ),
             ),
             cardTheme: CardTheme(
@@ -91,9 +77,7 @@ class MyApp extends StatelessWidget {
               ),
             ),
             textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF00796B),
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             ),
             inputDecorationTheme: InputDecorationTheme(
               border: OutlineInputBorder(
@@ -103,39 +87,39 @@ class MyApp extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(
-                  color: Color(0xFF00796B),
+                  color: AppColors.primary,
                   width: 2,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFB2DFDB)),
+                borderSide: BorderSide(color: AppColors.primarySwatch[100]!),
               ),
-              labelStyle: const TextStyle(color: Color(0xFF004D40)),
-              floatingLabelStyle: const TextStyle(color: Color(0xFF00796B)),
+              labelStyle: const TextStyle(color: AppColors.primaryDark),
+              floatingLabelStyle: const TextStyle(color: AppColors.primary),
             ),
             textTheme: const TextTheme(
               headlineLarge: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF004D40),
+                color: AppColors.primaryDark,
               ),
               headlineMedium: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF004D40),
+                color: AppColors.primaryDark,
               ),
               headlineSmall: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF004D40),
+                color: AppColors.primaryDark,
               ),
-              bodyLarge: TextStyle(fontSize: 16, color: Colors.black87),
-              bodyMedium: TextStyle(fontSize: 14, color: Colors.black87),
+              bodyLarge: TextStyle(fontSize: 16, color: AppColors.black),
+              bodyMedium: TextStyle(fontSize: 14, color: AppColors.black),
               labelLarge: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Colors.white,
+                color: AppColors.white,
               ),
             ),
           ),
@@ -154,7 +138,7 @@ class AuthStateListener extends StatelessWidget {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         return state.isAuthenticated && state.userModel != null
-            ? HomePage(user: state.userModel!)
+            ? HomePage(user: state.userModel!) // This is correct
             : LoginScreen();
       },
     );
@@ -163,12 +147,12 @@ class AuthStateListener extends StatelessWidget {
 
 
 
-// import 'package:physioprime/firebase_options.dart';
-// import 'package:physioprime/ui/HomePage/ui/home_page.dart';
-// import 'package:physioprime/ui/LoginPage/bloc/auth_bloc.dart';
-// import 'package:physioprime/ui/LoginPage/bloc/auth_state.dart';
-// import 'package:physioprime/ui/LoginPage/repository/auth_repository.dart';
-// import 'package:physioprime/ui/LoginPage/ui/login_page.dart';
+// import 'package:physioone/firebase_options.dart';
+// import 'package:physioone/ui/HomePage/ui/home_page.dart';
+// import 'package:physioone/ui/LoginPage/bloc/auth_bloc.dart';
+// import 'package:physioone/ui/LoginPage/bloc/auth_state.dart';
+// import 'package:physioone/ui/LoginPage/repository/auth_repository.dart';
+// import 'package:physioone/ui/LoginPage/ui/login_page.dart';
 // import 'package:firebase_core/firebase_core.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter_bloc/flutter_bloc.dart';
@@ -222,7 +206,7 @@ class AuthStateListener extends StatelessWidget {
 
 
 
-// import 'package:physioprime/ui/HomePage/ui/home_page.dart';
+// import 'package:physioone/ui/HomePage/ui/home_page.dart';
 // import 'package:flutter/material.dart';
 // import 'package:firebase_core/firebase_core.dart';
 // import 'firebase_options.dart'; // Import the generated firebase_options.dart

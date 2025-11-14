@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_event.dart';
-import 'package:physioprime/ui/ManageUserPage/bloc/manage_users_state.dart';
-import 'package:physioprime/ui/ManageUserPage/repository/user_repository.dart';
+import 'package:physioone/ui/ManageUserPage/bloc/manage_users_event.dart';
+import 'package:physioone/ui/ManageUserPage/bloc/manage_users_state.dart';
+import 'package:physioone/ui/ManageUserPage/repository/user_repository.dart';
 
 class ManageUsersBloc extends Bloc<ManageUsersEvent, ManageUsersState> {
   final UserRepository _userRepository;

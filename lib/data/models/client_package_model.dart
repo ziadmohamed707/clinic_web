@@ -1,5 +1,5 @@
 // lib/data/models/client_package_model.dart
-import 'package:physioprime/domain/entities/client_package.dart';
+import 'package:physioone/domain/entities/client_package.dart';
 
 class ClientPackageModel {
   final String name;

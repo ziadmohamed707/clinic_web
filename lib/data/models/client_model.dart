@@ -1,6 +1,6 @@
 // lib/data/models/client_model.dart
-import 'package:physioprime/domain/entities/client.dart';
-import 'package:physioprime/data/models/client_package_model.dart';
+import 'package:physioone/domain/entities/client.dart';
+import 'package:physioone/data/models/client_package_model.dart';
 
 class ClientModel {
   final int id;

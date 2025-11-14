@@ -1,5 +1,5 @@
-import 'package:physioprime/ui/AddClientPage/ui/add_client_page.dart';
-import 'package:physioprime/ui/PackagesPage/ui/packages_page.dart';
+import 'package:physioone/ui/AddClientPage/ui/add_client_page.dart';
+import 'package:physioone/ui/PackagesPage/ui/packages_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -737,7 +737,10 @@ class _ClientListPageState extends State<ClientListPage> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text('Crafting Digital Realities | 01024375442', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+              Text(
+                'Crafting Digital Realities | 01024375442',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              ),
             ],
           ),
         ),

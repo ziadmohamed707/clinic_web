@@ -1,6 +1,6 @@
-import 'package:physioprime/domain/entities/appointment.dart';
-import 'package:physioprime/domain/entities/client.dart';
-import 'package:physioprime/domain/entities/doctor.dart';
+import 'package:physioone/domain/entities/appointment.dart';
+import 'package:physioone/domain/entities/client.dart';
+import 'package:physioone/domain/entities/doctor.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class ScheduleGridState extends Equatable {
