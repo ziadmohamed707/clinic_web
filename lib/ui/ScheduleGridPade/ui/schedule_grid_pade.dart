@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:html' as html;
 import 'dart:ui';
 
 import 'package:physioone/core/app_consts/app_consts.dart';
@@ -13,6 +14,7 @@ import 'package:physioone/ui/LoginPage/repository/auth_repository.dart';
 import 'package:physioone/ui/LoginPage/ui/login_page.dart';
 import 'package:physioone/ui/ManageDoctorPage/ui/manage_doctors_page.dart';
 import 'package:physioone/ui/ManageUserPage/ui/manage_users_page.dart';
+// import 'package:physioone/ui/UserProfilePage/ui/user_profile_page.dart';
 import 'package:physioone/ui/PackagesPage/ui/packages_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:physioone/ui/ScheduleGridPade/ui/user_profile_page.dart';
 import 'package:physioone/ui/ScheduleGridPade/widget/buildStatsCard.dart';
 import 'package:physioone/ui/billPaymentScreen/ui/bill_notification_screen.dart';
 import 'package:physioone/ui/billPaymentScreen/ui/system_services_page.dart';
@@ -51,6 +54,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
   late CollectionReference _appointmentsCollection;
   late CollectionReference _clientsCollection;
   late CollectionReference _doctorsCollection;
+  late CollectionReference _doctorProfileCollection;
 
   StreamSubscription? _appointmentsSubscription;
   StreamSubscription? _clientsSubscription;
@@ -64,6 +68,8 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
   String _currentLocationStatus = 'Fetching location...';
   Position? _currentPosition;
   bool _isFetchingLocation = false;
+
+  final ScrollController _horizontalScrollController = ScrollController();
 
   @override
   void initState() {
@@ -92,6 +98,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     _doctorsSubscription?.cancel();
     _timer?.cancel();
     _locationTimer?.cancel();
+    _horizontalScrollController.dispose();
     super.dispose();
   }
 
@@ -103,6 +110,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       _appointmentsCollection = _firestore.collection('appointments');
       _clientsCollection = _firestore.collection('clients');
       _doctorsCollection = _firestore.collection('doctors');
+      _doctorProfileCollection = _firestore.collection('employees');
       await _syncAndListen();
       // await _uploadOfflineData(); // This can be intensive, consider a more targeted sync strategy
     } finally {
@@ -133,6 +141,11 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       _doctorsBox.put(doc.id, doc.data());
     }
 
+    final doctorProfileSnapshot = await _doctorProfileCollection.get();
+    doctorProfileSnapshot.docs.forEach((doc) {
+      _doctorsBox.put(doc.id, doc.data());
+    });
+    
     // Now, set up listeners for real-time updates
     _clientsSubscription = _clientsCollection.snapshots().listen((snapshot) {
       for (var change in snapshot.docChanges) {
@@ -178,6 +191,30 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     }, onError: (e) => _showSnackBar('Doctor sync error: $e', Colors.red));
   }
 
+  Future<bool> _handleLocationPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      _showSnackBar(
+        'Location services are disabled. Please enable them.',
+        Colors.orange,
+      );
+      return false;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _showSnackBar('Location permissions are denied.', Colors.red);
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> _getCurrentLocation() async {
     if (_isFetchingLocation) return;
     if (mounted) {
@@ -188,7 +225,15 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     }
 
     try {
-      final position = await _locationService.getCurrentPosition();
+      final hasPermission = await _handleLocationPermission();
+      if (!hasPermission) {
+        setState(() {
+          _currentLocationStatus = 'Location permission not granted.';
+          _isFetchingLocation = false;
+        });
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition();
       final address = await _locationService.getAddressFromPosition(position);
       if (mounted) {
         setState(() {
@@ -217,11 +262,15 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       final lat = _currentPosition!.latitude;
       final lng = _currentPosition!.longitude;
       final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
-      final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (kIsWeb) {
+        html.window.open(url, '_blank');
       } else {
-        _showSnackBar('Could not open map.', Colors.red);
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          _showSnackBar('Could not open map.', Colors.red);
+        }
       }
     } else {
       _showSnackBar('Location not available to show on map.', Colors.orange);
@@ -679,14 +728,16 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                               ),
                               Row(
                                 children: [
-                                  Text(
-                                    DateFormat(
-                                      'EEEE, MMMM d, yyyy',
-                                    ).format(selectedDate),
-                                    style: TextStyle(
-                                      color: Colors.grey.shade700,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                  Expanded(
+                                    child: Text(
+                                      DateFormat(
+                                        'EEEE, MMMM d, yyyy',
+                                      ).format(selectedDate),
+                                      style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -869,10 +920,15 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                     ),
                     const SizedBox(height: 20), // This was missing a const
                     Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
+                      child: Scrollbar(
+                        controller: _horizontalScrollController,
+                        thumbVisibility: true,
                         child: SingleChildScrollView(
-                          child: Column(
+                          controller: _horizontalScrollController,
+                          scrollDirection: Axis.horizontal,
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Header Row
                               Row(
@@ -984,6 +1040,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                         ),
                       ),
                     ),
+                    )
                   ],
                 ),
               ),
@@ -1143,77 +1200,89 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                       ),
                       SizedBox(height: 12),
                       // User Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(25),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 1,
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => UserProfilePage(user: widget.user),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(25),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(25),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1,
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.8),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.green.withOpacity(0.6),
-                                    blurRadius: 8,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 10,
                               ),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              widget.user.username ?? '',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: Colors.amber.withOpacity(0.5),
-                                  width: 1,
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.8),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.green.withOpacity(0.6),
+                                      blurRadius: 8,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Text(
-                                (widget.user.role ?? '').toUpperCase(),
+                              SizedBox(width: 8),
+                              Text(
+                                widget.user.username ?? '',
                                 style: TextStyle(
-                                  color: Colors.amber.shade200,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.amber.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  (widget.user.role ?? '').toUpperCase(),
+                                  style: TextStyle(
+                                    color: Colors.amber.shade200,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],

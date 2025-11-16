@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:physioone/core/app_colors.dart';
 import 'package:collection/collection.dart';
 import 'package:physioone/hr_system/ui/employee_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'
-    show FirebaseFirestore, SetOptions;
+    show FirebaseFirestore, SetOptions, Timestamp;
 import 'dart:async';
 import 'package:physioone/ui/LoginPage/models/user_model.dart';
 import 'package:physioone/hr_system/ui/employee_service.dart';
@@ -26,6 +27,7 @@ class _HRMainScreenState extends State<HRMainScreen> {
   StreamSubscription? _doctorsSubscription;
   final EmployeeService _employeeService = EmployeeService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ScrollController _horizontalScrollController = ScrollController();
   @override
   void initState() {
     super.initState();
@@ -37,6 +39,7 @@ class _HRMainScreenState extends State<HRMainScreen> {
     _employeesSubscription?.cancel();
     _usersSubscription?.cancel();
     _doctorsSubscription?.cancel();
+    _horizontalScrollController.dispose();
     super.dispose();
   }
 
@@ -158,6 +161,8 @@ class _HRMainScreenState extends State<HRMainScreen> {
       joinDate: DateTime.now(),
       yearsOfExperience: 0,
       leaveRequests: [],
+      annualLeaveQuota: 15, // Default value
+      sickLeaveQuota: 7, // Default value
       source: 'users',
     );
   }
@@ -181,6 +186,8 @@ class _HRMainScreenState extends State<HRMainScreen> {
       joinDate: DateTime.now(),
       yearsOfExperience: 0,
       leaveRequests: [],
+      annualLeaveQuota: 15, // Default value
+      sickLeaveQuota: 7, // Default value
       baseSalary: (doctorData['baseSalary'] as num? ?? 0).toInt(),
       source: 'doctors',
       allowances: (doctorData['allowances'] as num? ?? 0).toInt(),
@@ -247,10 +254,19 @@ class _HRMainScreenState extends State<HRMainScreen> {
           ),
           VerticalDivider(thickness: 1, width: 1),
           Expanded(
-            child:
-                _isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : _buildScreen(),
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : Scrollbar(
+                    controller: _horizontalScrollController, // Connect controller
+                    // Added Scrollbar
+                    thumbVisibility: true, // Make scrollbar always visible
+                    child: SingleChildScrollView(
+                      // Added SingleChildScrollView for horizontal scrolling
+                      controller: _horizontalScrollController, // Connect controller
+                      scrollDirection: Axis.horizontal,
+                      child: _buildScreen(),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -258,234 +274,246 @@ class _HRMainScreenState extends State<HRMainScreen> {
   }
 
   Widget _buildScreen() {
-    // Pass the central employee list to each screen.
-    switch (_selectedIndex) {
-      case 0:
-        return DashboardScreen(employees: _employees);
-      case 1:
-        return EmployeesScreen(
-          employees: _employees,
-          onAddEmployee: (employeeToAdd) async {
-            // Determine prefix based on position
-            String position = employeeToAdd.position.toLowerCase();
-            String prefix =
-                position.contains('doctor')
-                    ? 'DR'
-                    : position.contains('reception')
-                    ? 'RS'
-                    : 'EM';
+    return Container(
+      height: double.infinity,
+      width: 1200, // Set a minimum width for the content area
+      child: Builder(builder: (context) {
+        // Pass the central employee list to each screen.
+        switch (_selectedIndex) {
+          case 0:
+            return DashboardScreen(employees: _employees);
+          case 1:
+            return EmployeesScreen(
+              employees: _employees,
+              onAddEmployee: (employeeToAdd) async {
+                // Determine prefix based on position
+                String position = employeeToAdd.position.toLowerCase();
+                String department = employeeToAdd.department.toLowerCase();
+                final bool isMedicalStaff =
+                    position.contains('doctor') || department == 'medical';
 
-            String newId = await _generateNextId(prefix);
-            final finalEmployee = employeeToAdd.copyWith(id: newId);
+                String prefix = isMedicalStaff ? 'DR'
+                    : position.contains('reception') ? 'RS' : 'EM';
 
-            await _employeeService.addEmployee(finalEmployee);
+                String newId = await _generateNextId(prefix);
+                final finalEmployee = employeeToAdd.copyWith(id: newId);
 
-            // If it's a doctor, also add them to the doctors collection for other parts of the app
-            if (prefix == 'DR') {
-              final batch = _firestore.batch();
-              final doctorData = {
-                'id': newId,
-                'name': finalEmployee.name,
-                'availableDays': finalEmployee.availableDays,
-                'email':
-                    finalEmployee
+                await _employeeService.addEmployee(finalEmployee);
+
+                // If it's a doctor, also add them to the doctors collection for other parts of the app
+                if (isMedicalStaff) {
+                  final batch = _firestore.batch();
+                  final doctorData = {
+                    'id': newId,
+                    'name': finalEmployee.name,
+                    'availableDays': finalEmployee.availableDays,
+                    'email': finalEmployee
                         .email, // Add email to the doctor-specific record
-                'baseSalary': finalEmployee.baseSalary,
-                'allowances': finalEmployee.allowances,
-                'deductions': finalEmployee.deductions,
-              };
-              batch.set(
-                _firestore.collection('doctors').doc(newId),
-                doctorData,
-              );
-              await batch.commit();
-            }
+                    'baseSalary': finalEmployee.baseSalary,
+                    'allowances': finalEmployee.allowances,
+                    'deductions': finalEmployee.deductions,
+                  };
+                  batch.set(
+                    _firestore.collection('doctors').doc(newId),
+                    doctorData,
+                  );
+                  await batch.commit();
+                }
 
-            // Also add the new employee to the 'users' collection for authentication
-            try {
-              final userData = {
-                'id': newId,
-                'username': finalEmployee.username,
-                'password': finalEmployee.password,
-                'role': finalEmployee.position.toLowerCase(),
-              };
-              await _firestore.collection('users').doc(newId).set(userData);
-            } catch (e) {
-              // Handle potential error of adding to users collection
-              print('Error adding employee to users collection: $e');
-            }
-          },
-          onUpdateEmployee: (updatedEmployee) async {
-            final isExistingHrEmployee = updatedEmployee.source == 'employees';
+                // Also add the new employee to the 'users' collection for authentication
+                try {
+                  final userData = {
+                    'id': newId,
+                    'username': finalEmployee.username,
+                    'password': finalEmployee.password,
+                    'role': finalEmployee.position.toLowerCase(),
+                  };
+                  await _firestore.collection('users').doc(newId).set(userData);
+                } catch (e) {
+                  // Handle potential error of adding to users collection
+                  print('Error adding employee to users collection: $e');
+                }
+              },
+              onUpdateEmployee: (updatedEmployee) async {
+                final isExistingHrEmployee =
+                    updatedEmployee.source == 'employees';
 
-            if (isExistingHrEmployee) {
-              // This is a regular update for an existing HR employee.
-              final batch = _firestore.batch();
-              final docId = updatedEmployee.id;
-              await _employeeService.updateEmployee(updatedEmployee);
+                if (isExistingHrEmployee) {
+                  // This is a regular update for an existing HR employee.
+                  final batch = _firestore.batch();
+                  final docId = updatedEmployee.id;
+                  await _employeeService.updateEmployee(updatedEmployee);
 
-              // If they are a doctor, update the doctors collection as well
-              if (updatedEmployee.position.toLowerCase().contains('doctor')) {
-                final doctorData = {
-                  'name': updatedEmployee.name,
-                  'availableDays': updatedEmployee.availableDays,
-                  'email': updatedEmployee.email, // Also update the email here
-                  'baseSalary': updatedEmployee.baseSalary,
-                  'allowances': updatedEmployee.allowances,
-                  'deductions': updatedEmployee.deductions,
-                };
-                batch.update(
-                  _firestore.collection('doctors').doc(docId),
-                  doctorData,
-                );
-              }
-              // Also update the user record if name/role changed
-              final userUpdateData = {
-                'username': updatedEmployee.username,
-                'password': updatedEmployee.password,
-                'role': updatedEmployee.position.toLowerCase(),
-              };
-              if (userUpdateData['password'] == '') {
-                userUpdateData.remove('password'); // Don't update password if it's empty
-              }
-              batch.update(_firestore.collection('users').doc(docId), userUpdateData);
+                  // If they are a doctor, update the doctors collection as well
+                  if (updatedEmployee.position
+                      .toLowerCase()
+                      .contains('doctor')) {
+                    final doctorData = {
+                      'name': updatedEmployee.name,
+                      'availableDays': updatedEmployee.availableDays,
+                      'email':
+                          updatedEmployee.email, // Also update the email here
+                      'baseSalary': updatedEmployee.baseSalary,
+                      'allowances': updatedEmployee.allowances,
+                      'deductions': updatedEmployee.deductions,
+                    };
+                    batch.update(
+                      _firestore.collection('doctors').doc(docId),
+                      doctorData,
+                    );
+                  }
+                  // Also update the user record if name/role changed
+                  final userUpdateData = {
+                    'username': updatedEmployee.username,
+                    'password': updatedEmployee.password,
+                    'role': updatedEmployee.position.toLowerCase(),
+                  };
+                  if (userUpdateData['password'] == '') {
+                    userUpdateData
+                        .remove('password'); // Don't update password if it's empty
+                  }
+                  batch.update(
+                      _firestore.collection('users').doc(docId), userUpdateData);
 
-              await batch.commit();
-            } else {
-              // This is a user/doctor being "promoted" to a full employee. Generate a new, formatted ID.
-              String position = updatedEmployee.position.toLowerCase();
-              String prefix =
-                  position.contains('doctor')
+                  await batch.commit();
+                } else {
+                  // This is a user/doctor being "promoted" to a full employee. Generate a new, formatted ID.
+                  String position = updatedEmployee.position.toLowerCase();
+                  String prefix = position.contains('doctor')
                       ? 'DR' // If position is 'reception', use 'RS' prefix
                       : position.contains('reception')
-                      ? 'RS'
-                      : 'EM';
+                          ? 'RS'
+                          : 'EM';
 
-              String newId = await _generateNextId(prefix);
-              String oldDocId = updatedEmployee.id;
-              String sourceCollection = updatedEmployee.source;
+                  String newId = await _generateNextId(prefix);
+                  String oldDocId = updatedEmployee.id;
+                  String sourceCollection = updatedEmployee.source;
 
-              final promotedEmployee = updatedEmployee.copyWith(
-                id: newId,
-                source: 'employees',
-              );
+                  final promotedEmployee = updatedEmployee.copyWith(
+                    id: newId,
+                    source: 'employees',
+                  );
 
-              // Use a batch write to perform multiple operations atomically.
-              await _employeeService.addEmployee(promotedEmployee);
+                  // Use a batch write to perform multiple operations atomically.
+                  await _employeeService.addEmployee(promotedEmployee);
 
-              if (sourceCollection == 'users' ||
-                  sourceCollection == 'doctors') {
-                // 2. Re-create the original user/doctor record using the new formatted ID as the document ID,
-                // and delete the old record that used the UUID. This standardizes the keys.
+                  if (sourceCollection == 'users' ||
+                      sourceCollection == 'doctors') {
+                    // 2. Re-create the original user/doctor record using the new formatted ID as the document ID,
+                    // and delete the old record that used the UUID. This standardizes the keys.
+                    final batch = _firestore.batch();
+                    final originalData = promotedEmployee.toMap();
+                    batch.set(
+                      _firestore.collection(sourceCollection).doc(newId),
+                      originalData,
+                    );
+                    batch.delete(
+                      _firestore.collection(sourceCollection).doc(oldDocId),
+                    );
+                    await batch.commit();
+                  }
+                }
+              },
+              onDeleteEmployee: (employeeId) async {
+                // Use a batch to delete from both collections if necessary
+                await _employeeService.deleteEmployee(employeeId);
                 final batch = _firestore.batch();
-                final originalData = promotedEmployee.toMap();
-                batch.set(
-                  _firestore.collection(sourceCollection).doc(newId),
-                  originalData,
-                );
-                batch.delete(
-                  _firestore.collection(sourceCollection).doc(oldDocId),
-                );
+
+                // If the ID belongs to a doctor, delete from the doctors collection too.
+                if (employeeId.startsWith('DR')) {
+                  batch.delete(_firestore.collection('doctors').doc(employeeId));
+                }
+
                 await batch.commit();
-              }
-            }
-          },
-          onDeleteEmployee: (employeeId) async {
-            // Use a batch to delete from both collections if necessary
-            await _employeeService.deleteEmployee(employeeId);
-            final batch = _firestore.batch();
+              },
+            );
+          case 2:
+            return AttendanceScreen(
+                employees: _employees, currentUser: widget.user);
+          case 3:
+            return LeaveManagementScreen(employees: _employees);
+          case 4:
+            return SalariesScreen(
+              employees: _employees,
+              onUpdateEmployee: (EmployeeModel updatedEmployee) async {
+                final isExistingHrEmployee =
+                    updatedEmployee.source == 'employees';
 
-            // If the ID belongs to a doctor, delete from the doctors collection too.
-            if (employeeId.startsWith('DR')) {
-              batch.delete(_firestore.collection('doctors').doc(employeeId));
-            }
+                if (isExistingHrEmployee) {
+                  // This is a regular update for an existing HR employee.
+                  final batch = _firestore.batch();
+                  final docId = updatedEmployee.id;
+                  await _employeeService.updateEmployee(updatedEmployee);
 
-            await batch.commit();
-          },
-        );
-      case 2:
-        return AttendanceScreen(employees: _employees, currentUser: widget.user);
-      case 3:
-        return LeaveManagementScreen(employees: _employees);
-      case 4:
-        return SalariesScreen(
-          employees: _employees,
-          onUpdateEmployee: (EmployeeModel updatedEmployee) async {
-            final isExistingHrEmployee = updatedEmployee.source == 'employees';
-
-            if (isExistingHrEmployee) {
-              // This is a regular update for an existing HR employee.
-              final batch = _firestore.batch();
-              final docId = updatedEmployee.id;
-              await _employeeService.updateEmployee(updatedEmployee);
-
-              // If they are a doctor, update the doctors collection as well
-              if (updatedEmployee.position.toLowerCase().contains('doctor')) {
-                // When updating salary, we need to update the doctor record too.
-                final doctorUpdateData = {
-                  'baseSalary': updatedEmployee.baseSalary,
-                  'allowances': updatedEmployee.allowances,
-                  'deductions': updatedEmployee.deductions,
-                };
-                batch.update(
-                  _firestore.collection('doctors').doc(docId),
-                  doctorUpdateData,
-                );
-              }
-              await batch.commit();
-            } else {
-              // This is a user/doctor being "promoted" to a full employee. Generate a new, formatted ID.
-              String position = updatedEmployee.position.toLowerCase();
-              String prefix =
-                  position.contains('doctor')
+                  // If they are a doctor, update the doctors collection as well
+                  if (updatedEmployee.position
+                      .toLowerCase()
+                      .contains('doctor')) {
+                    // When updating salary, we need to update the doctor record too.
+                    final doctorUpdateData = {
+                      'baseSalary': updatedEmployee.baseSalary,
+                      'allowances': updatedEmployee.allowances,
+                      'deductions': updatedEmployee.deductions,
+                    };
+                    batch.update(
+                      _firestore.collection('doctors').doc(docId),
+                      doctorUpdateData,
+                    );
+                  }
+                  await batch.commit();
+                } else {
+                  // This is a user/doctor being "promoted" to a full employee. Generate a new, formatted ID.
+                  String position = updatedEmployee.position.toLowerCase();
+                  String prefix = position.contains('doctor')
                       ? 'DR' // If position is 'reception', use 'RS' prefix
                       : position.contains('reception')
-                      ? 'RS'
-                      : 'EM';
+                          ? 'RS'
+                          : 'EM';
 
-              String newId = await _generateNextId(prefix);
-              String oldDocId =
-                  updatedEmployee
+                  String newId = await _generateNextId(prefix);
+                  String oldDocId = updatedEmployee
                       .id; // This is the original Firestore doc ID (the UUID)
-              String sourceCollection =
-                  updatedEmployee.source; // 'users' or 'doctors'
-              final promotedEmployee = updatedEmployee.copyWith(
-                id: newId,
-                source: 'employees',
-              );
+                  String sourceCollection =
+                      updatedEmployee.source; // 'users' or 'doctors'
+                  final promotedEmployee = updatedEmployee.copyWith(
+                    id: newId,
+                    source: 'employees',
+                  );
 
-              // Use a batch write to perform multiple operations atomically.
-              final batch = _firestore.batch();
+                  // Use a batch write to perform multiple operations atomically.
+                  final batch = _firestore.batch();
 
-              // 1. Create the new, detailed employee record with the formatted ID.
-              batch.set(
-                _firestore.collection('employees').doc(newId),
-                promotedEmployee.toMap(),
-              );
+                  // 1. Create the new, detailed employee record with the formatted ID.
+                  batch.set(
+                    _firestore.collection('employees').doc(newId),
+                    promotedEmployee.toMap(),
+                  );
 
-              // 2. Re-create the original user/doctor record using the new formatted ID as the document ID,
-              // and delete the old record that used the UUID. This standardizes the keys.
-              if (sourceCollection == 'users' ||
-                  sourceCollection == 'doctors') {
-                final originalData = promotedEmployee.toMap();
-                originalData['id'] =
-                    newId; // Ensure the inner ID field is also updated.
-                batch.set(
-                  _firestore.collection(sourceCollection).doc(newId),
-                  originalData,
-                );
-                batch.delete(
-                  _firestore.collection(sourceCollection).doc(oldDocId),
-                );
-              }
+                  // 2. Re-create the original user/doctor record using the new formatted ID as the document ID,
+                  // and delete the old record that used the UUID. This standardizes the keys.
+                  if (sourceCollection == 'users' ||
+                      sourceCollection == 'doctors') {
+                    final originalData = promotedEmployee.toMap();
+                    originalData['id'] =
+                        newId; // Ensure the inner ID field is also updated.
+                    batch.set(
+                      _firestore.collection(sourceCollection).doc(newId),
+                      originalData,
+                    );
+                    batch.delete(
+                      _firestore.collection(sourceCollection).doc(oldDocId),
+                    );
+                  }
 
-              await batch.commit();
-            }
-          },
-        );
-      default:
-        return DashboardScreen(employees: _employees);
-    }
+                  await batch.commit();
+                }
+              },
+            );
+          default:
+            return DashboardScreen(employees: _employees);
+        }
+      }),
+    );
   }
 }
 
@@ -808,6 +836,7 @@ class EmployeesScreen extends StatefulWidget {
 
 class _EmployeesScreenState extends State<EmployeesScreen> {
   List<EmployeeModel> _filteredEmployees = [];
+  final ScrollController _verticalScrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   final List<String> _availablePositions = [
     'doctor',
@@ -825,9 +854,29 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     'Design',
   ];
 
+  // Base salary rates per position. Fetched from Firestore.
+  Map<String, double> _baseRatesByPosition = {
+    'doctor': 15000.0, // Base salary for doctors
+    'reception': 5000.0, // Consolidated salary for reception
+    'admin': 8000.0, // Base salary for admin
+    'it': 9000.0, // Base salary for IT
+    'design': 7500.0, // Base salary for design
+  };
+  double _calculateBaseSalary(String position, int yearsOfExperience) {
+    final positionKey = position.toLowerCase();
+    final baseRate = _baseRatesByPosition.entries
+        .firstWhere(
+          (entry) => positionKey.contains(entry.key),
+          orElse: () => const MapEntry('default', 4000.0),
+        )
+        .value;
+    final experienceBonus = yearsOfExperience * 250.0; // EGP 250 bonus per year
+    return baseRate + experienceBonus;
+  }
   @override
   void initState() {
     super.initState();
+    _fetchSalarySettings();
     _filteredEmployees = widget.employees;
     _searchController.addListener(() {
       if (_searchController.text.isEmpty && mounted) {
@@ -837,10 +886,36 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       }
     });
   }
+  Future<void> _fetchSalarySettings() async {
+    try {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('hr_settings')
+              .doc('salary_rules')
+              .get();
+      if (doc.exists && doc.data() != null) {
+        if (mounted) {
+          setState(() {
+            final ratesFromFirestore = doc.data()!['baseRatesByPosition'];
+            if (ratesFromFirestore is Map) {
+              _baseRatesByPosition = Map<String, double>.from(
+                ratesFromFirestore.map(
+                  (key, value) => MapEntry(key, (value as num).toDouble()),
+                ),
+              );
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print("Could not fetch salary settings for EmployeesScreen: $e");
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _verticalScrollController.dispose();
     super.dispose();
   }
 
@@ -888,18 +963,22 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                 setState(() {
                   _filteredEmployees =
                       widget.employees.where((emp) {
+                        final query = value.toLowerCase();
+                        final id = emp.id.toLowerCase();
+                        final email = emp.email.toLowerCase();
                         final name = emp.name.toLowerCase();
                         final position = emp.position.toLowerCase();
                         final department = emp.department.toLowerCase();
-                        final query = value.toLowerCase();
-                        return name.contains(query) ||
+                        return id.contains(query) ||
+                            email.contains(query) ||
+                            name.contains(query) ||
                             position.contains(query) ||
                             department.contains(query);
                       }).toList();
                 });
               },
               decoration: InputDecoration(
-                hintText: 'Search employees...',
+                hintText: 'Search by ID, Name, Email, Position...',
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -909,8 +988,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
           ),
           SizedBox(height: 16),
           Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+            child: Scrollbar(
+              controller: _verticalScrollController,
+              thumbVisibility: true,
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.surface,
@@ -924,6 +1004,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                   ],
                 ),
                 child: SingleChildScrollView(
+                  controller: _verticalScrollController,
                   child: DataTable(
                     columnSpacing: 30,
                     headingRowColor: MaterialStateProperty.all(
@@ -1058,6 +1139,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     final allowancesController = TextEditingController(text: '0');
     final experienceController = TextEditingController(text: '0');
     final deductionsController = TextEditingController(text: '0');
+    final annualLeaveController = TextEditingController(text: '15');
+    final sickLeaveController = TextEditingController(text: '7');
     List<String> selectedDays = [];
     DateTime? _joinDate = DateTime.now();
 
@@ -1070,7 +1153,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
             key: formKey,
             child: StatefulBuilder(
               builder: (context, setStateDialog) {
-                bool isDoctor = selectedPosition?.toLowerCase() == 'doctor';
+                bool isMedicalStaff =
+                    selectedPosition?.toLowerCase() == 'doctor' ||
+                    selectedDepartment?.toLowerCase() == 'medical';
                 return SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1213,6 +1298,28 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                       ),
                       SizedBox(height: 16),
                       TextFormField(
+                        controller: annualLeaveController,
+                        decoration: InputDecoration(
+                          labelText: 'Annual Leave Quota (days)',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || int.tryParse(value) == null)
+                            return 'Enter a valid number';
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: sickLeaveController,
+                        decoration: InputDecoration(
+                          labelText: 'Sick Leave Quota (days)',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) => (value == null || int.tryParse(value) == null) ? 'Enter a valid number' : null,
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
                         readOnly: true,
                         controller: TextEditingController(
                           text:
@@ -1238,7 +1345,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                           ),
                         ),
                       ),
-                      if (isDoctor) ...[
+                      if (isMedicalStaff) ...[
                         SizedBox(height: 20),
                         Text(
                           'Available Days:',
@@ -1282,8 +1389,10 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
             ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  bool isDoctor = selectedPosition?.toLowerCase() == 'doctor';
-                  if (isDoctor && selectedDays.isEmpty) {
+                  bool isMedicalStaff =
+                      selectedPosition?.toLowerCase() == 'doctor' ||
+                      selectedDepartment?.toLowerCase() == 'medical';
+                  if (isMedicalStaff && selectedDays.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -1294,6 +1403,14 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                     );
                     return;
                   }
+
+                  final yearsOfExperience =
+                      int.tryParse(experienceController.text) ?? 0;
+                  final calculatedBaseSalary = _calculateBaseSalary(
+                    selectedPosition!,
+                    yearsOfExperience,
+                  );
+
                   // The ID is now generated in the onAddEmployee callback.
                   final newEmployee = EmployeeModel(
                     id: '', // Will be generated in the callback
@@ -1303,18 +1420,18 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                     position: selectedPosition!,
                     department: selectedDepartment!,
                     email: emailController.text,
-                    status:
-                        'Active', // Base salary is now calculated, so we can pass 0 or remove it
-                    baseSalary: 0,
+                    status: 'Active',
+                    baseSalary: calculatedBaseSalary.toInt(),
                     allowances: int.tryParse(allowancesController.text) ?? 0,
-                    yearsOfExperience:
-                        int.tryParse(experienceController.text) ?? 0,
+                    yearsOfExperience: yearsOfExperience,
                     deductions: int.tryParse(deductionsController.text) ?? 0,
                     payslipGenerated: false,
                     attendance: [],
                     leaveRequests: [],
                     joinDate: _joinDate ?? DateTime.now(),
-                    availableDays: isDoctor ? selectedDays : null,
+                    availableDays: isMedicalStaff ? selectedDays : null,
+                    annualLeaveQuota: int.tryParse(annualLeaveController.text) ?? 15,
+                    sickLeaveQuota: int.tryParse(sickLeaveController.text) ?? 7,
                     source: 'employees', // Mark as a native HR employee
                   );
 
@@ -1345,13 +1462,14 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         employee.position.toLowerCase().isEmpty
             ? employee.position
             : employee.position
-                .toLowerCase(); // Normalize to lowercase to match _availablePositions
-    String? selectedDepartment = availableDepartments.firstWhere(
+                .toLowerCase(); // Normalize to lowercase to match available positions
+    String? selectedDepartment = availableDepartments.firstWhereOrNull(
       (d) => d.toLowerCase() == employee.department.toLowerCase(),
-    ); // State variables for dropdowns - normalize to lowercase to match _availablePositions
+    ); // Use firstWhereOrNull for safety
 
     final emailController = TextEditingController(text: employee.email);
     final usernameController = TextEditingController(text: employee.username);
+    final oldPasswordController = TextEditingController();
     final passwordController =
         TextEditingController(); // Leave blank for security
 
@@ -1364,6 +1482,12 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     );
     final deductionsController = TextEditingController(
       text: employee.deductions.toString(),
+    );
+    final annualLeaveController = TextEditingController(
+      text: employee.annualLeaveQuota.toString(),
+    );
+    final sickLeaveController = TextEditingController(
+      text: employee.sickLeaveQuota.toString(),
     );
     String? selectedStatus = employee.status;
     final List<String> availableStatuses = ['Active', 'On Leave', 'Terminated'];
@@ -1379,7 +1503,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
             key: formKey,
             child: StatefulBuilder(
               builder: (context, setStateDialog) {
-                bool isDoctor = selectedPosition?.toLowerCase() == 'doctor';
+                bool isMedicalStaff =
+                    selectedPosition?.toLowerCase() == 'doctor' ||
+                    selectedDepartment?.toLowerCase() == 'medical';
                 return SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1476,12 +1602,27 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                       ),
                       SizedBox(height: 16),
                       TextFormField(
+                        controller: oldPasswordController,
+                        decoration: InputDecoration(
+                          labelText: 'Old Password',
+                          hintText: 'Required to set a new password',
+                        ),
+                        obscureText: true,
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
                         controller: passwordController,
                         decoration: InputDecoration(
                           labelText: 'New Password',
                           hintText: 'Leave blank to keep current',
                         ),
                         obscureText: true,
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty && value.length < 6) {
+                            return 'Password must be at least 6 characters';
+                          }
+                          return null;
+                        },
                       ),
                       SizedBox(height: 16),
                       TextFormField(
@@ -1557,7 +1698,29 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                                     ? 'Enter a valid number'
                                     : null,
                       ),
-                      if (isDoctor) ...[
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: annualLeaveController,
+                        decoration: InputDecoration(
+                          labelText: 'Annual Leave Quota (days)',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) =>
+                            (value == null || int.tryParse(value) == null)
+                                ? 'Enter a valid number'
+                                : null,
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: sickLeaveController,
+                        decoration: InputDecoration(
+                          labelText: 'Sick Leave Quota (days)',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) =>
+                            (value == null || int.tryParse(value) == null) ? 'Enter a valid number' : null,
+                      ),
+                      if (isMedicalStaff) ...[
                         SizedBox(height: 20),
                         Text(
                           'Available Days:',
@@ -1601,8 +1764,10 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
             ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  bool isDoctor = selectedPosition?.toLowerCase() == 'doctor';
-                  if (isDoctor && selectedDays.isEmpty) {
+                  bool isMedicalStaff =
+                      selectedPosition?.toLowerCase() == 'doctor' ||
+                      selectedDepartment?.toLowerCase() == 'medical';
+                  if (isMedicalStaff && selectedDays.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -1613,27 +1778,56 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                     );
                     return;
                   }
+
+                  // Password change validation
+                  final oldPassword = oldPasswordController.text;
+                  final newPassword = passwordController.text;
+                  String finalPassword = employee.password; // Default to old password
+
+                  if (newPassword.isNotEmpty) {
+                    if (oldPassword.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Please enter the old password to set a new one.'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+                    if (oldPassword != employee.password) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('The old password you entered is incorrect.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+                    finalPassword = newPassword; // If all checks pass, set the new password
+                  }
+
                   var updatedEmployee = employee.copyWith(
                     name: nameController.text,
                     username: usernameController.text,
-                    // Only update password if a new one is entered
-                    password: passwordController.text.isNotEmpty
-                        ? passwordController.text
-                        : employee.password,
+                    // Use the validated final password
+                    password: finalPassword,
                     position: selectedPosition!,
                     department: selectedDepartment!,
                     email: emailController.text,
                     yearsOfExperience:
                         int.tryParse(experienceController.text) ?? 0,
-                    availableDays: isDoctor ? selectedDays : null,
+                    availableDays: isMedicalStaff ? selectedDays : null,
                     status: selectedStatus!,
                     allowances: int.tryParse(allowancesController.text) ?? 0,
                     deductions: int.tryParse(deductionsController.text) ?? 0,
+                    annualLeaveQuota: int.tryParse(annualLeaveController.text) ?? 15,
+                    sickLeaveQuota: int.tryParse(sickLeaveController.text) ?? 7,
                     joinDate: _joinDate ?? employee.joinDate,
                   );
-                  // If password field is empty, we should not send an empty password to be saved.
-                  // Instead, we can just not update it. The copyWith logic handles this.
-                  if (passwordController.text.isEmpty) {
+
+                  // This logic ensures we don't send an empty password to Firestore
+                  // if the user was just created and had no password.
+                  if (newPassword.isEmpty && employee.password.isEmpty) {
                     updatedEmployee = updatedEmployee.copyWith(password: '');
                   }
 
@@ -2030,10 +2224,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
 // Leave Management Screen
 class LeaveManagementScreen extends StatelessWidget {
+  final EmployeeService employeeService = EmployeeService();
   final List<EmployeeModel> employees;
-  const LeaveManagementScreen({Key? key, required this.employees})
-    : super(key: key);
-
+  LeaveManagementScreen({
+    // ignore: use_super_parameters
+    Key? key,
+    required this.employees,
+  }) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -2116,20 +2313,14 @@ class LeaveManagementScreen extends StatelessWidget {
                   Expanded(
                     child: ListView(
                       children:
-                          employees.expand((EmployeeModel employee) {
-                            return (employee.leaveRequests).map((request) {
-                              final color =
-                                  request['status'] == 'Pending'
-                                      ? Colors.orange[600]!
-                                      : Colors.green[600]!;
+                          employees.expand((employee) {
+                            return employee.leaveRequests.map((request) {
                               return _buildLeaveRequest(
-                                employee.name,
-                                request['type'],
-                                request['dates'],
-                                request['status'],
-                                color,
+                                context,
+                                employee,
+                                Map<String, dynamic>.from(request),
                               );
-                            });
+                            }).toList();
                           }).toList(),
                     ),
                   ),
@@ -2169,54 +2360,118 @@ class LeaveManagementScreen extends StatelessWidget {
   }
 
   Widget _buildLeaveRequest(
-    String name,
-    String type,
-    String dates,
-    String status,
-    Color color,
+    BuildContext context,
+    EmployeeModel employee,
+    Map<String, dynamic> request,
   ) {
+    final requestDate = request['requestDate'] as Timestamp?;
+    final reason = request['reason'] as String?;
+    final status = request['status'] as String? ?? 'Pending';
+    final color = status == 'Pending'
+        ? Colors.orange[600]!
+        : status == 'Approved' ? Colors.green[600]! : AppColors.error;
+
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey[300]!),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           CircleAvatar(
-            child: Text(name[0]),
+            child: Text(employee.name.isNotEmpty ? employee.name[0] : '?'),
             backgroundColor: AppColors.primary,
           ),
-          SizedBox(width: 16),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(employee.name,
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 SizedBox(height: 4),
-                Text(
-                  '$type • $dates',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                ),
+                Text('${request['type'] ?? 'Leave'} • ${request['dates']}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                if (reason != null && reason.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text('Reason: $reason',
+                        style: const TextStyle(
+                            fontStyle: FontStyle.italic, fontSize: 13)),
+                  ),
+                if (requestDate != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(
+                        'Requested on: ${DateFormat.yMMMd().format(requestDate.toDate())}',
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 12)),
+                  ),
               ],
             ),
           ),
-          Chip(label: Text(status), backgroundColor: color.withOpacity(0.2)),
-          SizedBox(width: 8),
+          Chip(
+            label: Text(status),
+            backgroundColor: color.withOpacity(0.2),
+          ),
+          const SizedBox(width: 8),
           if (status == 'Pending') ...[
             IconButton(
               icon: Icon(Icons.check, color: Colors.green[600]!),
-              onPressed: () {},
+              onPressed: () =>
+                  _updateLeaveStatus(context, employee, request, 'Approved'),
             ),
             IconButton(
               icon: Icon(Icons.close, color: AppColors.error),
-              onPressed: () {},
+              onPressed: () =>
+                  _updateLeaveStatus(context, employee, request, 'Rejected'),
             ),
           ],
         ],
       ),
     );
+  }
+
+  void _updateLeaveStatus(
+    BuildContext context,
+    EmployeeModel employee,
+    Map<String, dynamic> requestToUpdate,
+    String newStatus,
+  ) async {
+    try {
+      final updatedLeaveRequests =
+          List<Map<String, dynamic>>.from(employee.leaveRequests);
+
+      // Find the index of the request to update. Comparing by request date for uniqueness.
+      final requestIndex = updatedLeaveRequests.indexWhere(
+        (req) => req['requestDate'] == requestToUpdate['requestDate'],
+      );
+
+      if (requestIndex != -1) {
+        updatedLeaveRequests[requestIndex]['status'] = newStatus;
+        final updatedEmployee =
+            employee.copyWith(leaveRequests: updatedLeaveRequests);
+
+        await employeeService.updateEmployee(updatedEmployee);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Leave request has been $newStatus.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update leave status: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
 
@@ -2348,21 +2603,47 @@ class _SalariesScreenViewState extends State<_SalariesScreenView> {
     double experienceBonus = emp.yearsOfExperience * 250.0;
 
     final netSalary =
-        effectiveBaseSalary + emp.allowances - emp.deductions + departmentBonus;
+        effectiveBaseSalary +
+        emp.allowances -
+        emp.deductions +
+        departmentBonus;
+
+    // --- New Deduction Logic ---
+    final double dailyRate = effectiveBaseSalary / 22.0; // Assuming 22 working days
+
+    // 1. Unpaid Leave Deduction
+    final unpaidLeaveDays = (emp.leaveRequests)
+        .where((req) =>
+            req['status'] == 'Approved' && req['type'] == 'Unpaid')
+        .length;
+    final unpaidLeaveDeduction = unpaidLeaveDays * dailyRate;
+
+    // 2. Late Arrival Deduction
+    final lateArrivals = (emp.attendance)
+        .where((att) => att['status'] == 'Late')
+        .length;
+    final lateArrivalDeduction = lateArrivals * 50.0; // EGP 50 per late day
+
+    final totalDeductions =
+        emp.deductions + unpaidLeaveDeduction + lateArrivalDeduction;
+    final finalNetSalary = effectiveBaseSalary + emp.allowances - totalDeductions;
 
     return {
-      'netSalary': netSalary,
+      'netSalary': finalNetSalary,
       'departmentBonus': departmentBonus,
       'attendanceAdjustment': attendanceAdjustment,
       'calculatedBaseSalary': effectiveBaseSalary,
       'experienceBonus': experienceBonus,
+      'unpaidLeaveDeduction': unpaidLeaveDeduction, // Add to return map
+      'lateArrivalDeduction': lateArrivalDeduction, // Add to return map
     };
   }
 
   Widget build(BuildContext context) {
     double totalPayroll = widget.employees.fold(
       0,
-      (sum, e) => sum + _calculateSalaryComponents(e)['netSalary'],
+      (sum, e) =>
+          sum + (_calculateSalaryComponents(e)['netSalary'] as double? ?? 0.0),
     );
     final pendingPayslips =
         widget.employees.where((e) => e.payslipGenerated == false).length;
@@ -2387,7 +2668,39 @@ class _SalariesScreenViewState extends State<_SalariesScreenView> {
               ),
               SizedBox(width: 16),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () async {
+                  // Show a confirmation dialog before running payroll
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('Confirm Payroll Run'),
+                      content: const Text(
+                          'This will calculate and update deductions for all employees based on the current month\'s data. This action cannot be undone. Proceed?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: const Text('Yes, Run Payroll'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    for (final emp in widget.employees) {
+                      final salaryComps = _calculateSalaryComponents(emp);
+                      final totalDeductions = emp.deductions +
+                          (salaryComps['unpaidLeaveDeduction'] as double) +
+                          (salaryComps['lateArrivalDeduction'] as double);
+                      final updatedEmployee =
+                          emp.copyWith(deductions: totalDeductions.toInt());
+                      widget.onUpdateEmployee(updatedEmployee);
+                    }
+                  }
+                },
                 icon: Icon(Icons.play_circle_fill),
                 label: Text('Run Payroll for November'),
                 style: ElevatedButton.styleFrom(
@@ -2544,7 +2857,7 @@ class _SalariesScreenViewState extends State<_SalariesScreenView> {
                               ),
                               DataCell(
                                 Text(
-                                  'EGP ${emp.deductions.toStringAsFixed(0)}',
+                                  'EGP ${(emp.deductions + (salaryComps['unpaidLeaveDeduction'] ?? 0) + (salaryComps['lateArrivalDeduction'] ?? 0)).toStringAsFixed(0)}',
                                   style: TextStyle(color: AppColors.error),
                                 ),
                               ),

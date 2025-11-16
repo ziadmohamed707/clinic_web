@@ -26,7 +26,7 @@ class AuthRepository {
   }) async {
     final querySnapshot =
         await _firestore
-            .collection('users')
+            .collection('employees') // Step 1: Authenticate against the 'users' collection
             .where('username', isEqualTo: username)
             .where('password', isEqualTo: password)
             .limit(1)
@@ -36,8 +36,17 @@ class AuthRepository {
       throw Exception('Invalid username or password.');
     }
 
-    final userDoc = querySnapshot.docs.first;
-    final userModel = UserModel.fromMap(userDoc.data());
+    final authUserDoc = querySnapshot.docs.first;
+    final userId = authUserDoc.id;
+
+    // Step 2: Fetch the full employee profile from the 'employees' collection using the user's ID.
+    final employeeDoc =
+        await _firestore.collection('employees').doc(userId).get();
+
+    if (!employeeDoc.exists) {
+      throw Exception('Employee profile not found for the authenticated user.');
+    }
+    final userModel = UserModel.fromFirestore(employeeDoc);
 
     // Update current user stream
     _currentUserController.add(userModel);
@@ -109,7 +118,8 @@ class AuthRepository {
       final userData = box.get(_currentUserKey);
 
       if (userData != null && userData is Map<dynamic, dynamic>) {
-        return UserModel.fromMap(Map<String, dynamic>.from(userData));
+        final userMap = Map<String, dynamic>.from(userData);
+        return UserModel.fromMap(userMap, userMap['docId'] ?? '');
       }
       return null;
     } catch (e) {

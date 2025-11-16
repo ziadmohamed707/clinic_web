@@ -17,6 +17,8 @@ class EmployeeModel {
   final DateTime joinDate;
   final int yearsOfExperience;
   final List<dynamic> leaveRequests;
+  final int annualLeaveQuota;
+  final int sickLeaveQuota;
   final String source;
   final List<String>? availableDays;
 
@@ -37,6 +39,8 @@ class EmployeeModel {
     required this.joinDate,
     required this.yearsOfExperience,
     required this.leaveRequests,
+    this.annualLeaveQuota = 15, // Default annual leave
+    this.sickLeaveQuota = 7, // Default sick leave
     required this.source,
     this.availableDays,
   });
@@ -60,6 +64,8 @@ class EmployeeModel {
       joinDate: (map['joinDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       yearsOfExperience: map['yearsOfExperience'] as int? ?? 0,
       leaveRequests: map['leaveRequests'] ?? [],
+      annualLeaveQuota: map['annualLeaveQuota'] as int? ?? 15,
+      sickLeaveQuota: map['sickLeaveQuota'] as int? ?? 7,
       source: map['source'] ?? '',
       availableDays: map['availableDays']?.cast<String>(),
     );
@@ -84,6 +90,8 @@ class EmployeeModel {
       'joinDate': joinDate,
       'yearsOfExperience': yearsOfExperience,
       'leaveRequests': leaveRequests,
+      'annualLeaveQuota': annualLeaveQuota,
+      'sickLeaveQuota': sickLeaveQuota,
       'source': source,
       'availableDays': availableDays,
     };
@@ -107,6 +115,8 @@ class EmployeeModel {
     DateTime? joinDate,
     int? yearsOfExperience,
     List<dynamic>? leaveRequests,
+    int? annualLeaveQuota,
+    int? sickLeaveQuota,
     String? source,
     List<String>? availableDays,
   }) {
@@ -127,6 +137,8 @@ class EmployeeModel {
       joinDate: joinDate ?? this.joinDate,
       yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
       leaveRequests: leaveRequests ?? this.leaveRequests,
+      annualLeaveQuota: annualLeaveQuota ?? this.annualLeaveQuota,
+      sickLeaveQuota: sickLeaveQuota ?? this.sickLeaveQuota,
       source: source ?? this.source,
       availableDays: availableDays ?? this.availableDays,
     );

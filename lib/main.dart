@@ -55,7 +55,7 @@ class MyApp extends StatelessWidget {
                 color: AppColors.white,
               ),
             ),
-            cardTheme: CardTheme(
+            cardTheme: CardThemeData(
               elevation: 2,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -87,7 +87,7 @@ class MyApp extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(
-                  color: AppColors.primary,
+                  color: AppColors.primary, 
                   width: 2,
                 ),
               ),
