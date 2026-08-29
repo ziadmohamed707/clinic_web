@@ -23,9 +23,15 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        return ios;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for ios - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.macOS:
-        return macos;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.windows:
         return windows;
       case TargetPlatform.linux:
@@ -41,48 +47,33 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAWLoKP1qz4l79as68cauhMatPGnilQ9sw',
-    appId: '1:419143087841:web:2bca69c292221616ab29a0',
-    messagingSenderId: '419143087841',
-    projectId: 'physioone-74446',
-    authDomain: 'physioone-74446.firebaseapp.com',
-    storageBucket: 'physioone-74446.firebasestorage.app',
-    measurementId: 'G-8QBXZCZQ2Y',
+    apiKey: 'AIzaSyBNahSbzgQGMRd8vn9zsEV0pUNOcDKl5AQ',
+    appId: '1:817174772167:web:b2e8a3f96104fda7b801e2',
+    messagingSenderId: '817174772167',
+    projectId: 'physioprimedatabase',
+    authDomain: 'physioprimedatabase.firebaseapp.com',
+    databaseURL: 'https://physioprimedatabase-default-rtdb.firebaseio.com',
+    storageBucket: 'physioprimedatabase.firebasestorage.app',
+    measurementId: 'G-6EQ1QJT2ES',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBFiwl54gxomWJoG2pES6qcsQv0v3_xboI',
-    appId: '1:419143087841:android:6b9e5d627b23913bab29a0',
-    messagingSenderId: '419143087841',
-    projectId: 'physioone-74446',
-    storageBucket: 'physioone-74446.firebasestorage.app',
-  );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyA7QKJWmHZLZmIsUMJREg0uOi8AEcYb0d4',
-    appId: '1:419143087841:ios:d09050b56d04dc0dab29a0',
-    messagingSenderId: '419143087841',
-    projectId: 'physioone-74446',
-    storageBucket: 'physioone-74446.firebasestorage.app',
-    iosBundleId: 'com.example.clinicManagementSystem',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyA7QKJWmHZLZmIsUMJREg0uOi8AEcYb0d4',
-    appId: '1:419143087841:ios:d09050b56d04dc0dab29a0',
-    messagingSenderId: '419143087841',
-    projectId: 'physioone-74446',
-    storageBucket: 'physioone-74446.firebasestorage.app',
-    iosBundleId: 'com.example.clinicManagementSystem',
+    apiKey: 'AIzaSyC-LjuWORu7a9pFpcipRqj3rRO9tMlbFv4',
+    appId: '1:817174772167:android:e50d2171cb635fdfb801e2',
+    messagingSenderId: '817174772167',
+    projectId: 'physioprimedatabase',
+    databaseURL: 'https://physioprimedatabase-default-rtdb.firebaseio.com',
+    storageBucket: 'physioprimedatabase.firebasestorage.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAWLoKP1qz4l79as68cauhMatPGnilQ9sw',
-    appId: '1:419143087841:web:7ab9cc2c00b8e1d4ab29a0',
-    messagingSenderId: '419143087841',
-    projectId: 'physioone-74446',
-    authDomain: 'physioone-74446.firebaseapp.com',
-    storageBucket: 'physioone-74446.firebasestorage.app',
-    measurementId: 'G-P1TWV3B9P1',
+    apiKey: 'AIzaSyBNahSbzgQGMRd8vn9zsEV0pUNOcDKl5AQ',
+    appId: '1:817174772167:web:606ce315f4c86c8eb801e2',
+    messagingSenderId: '817174772167',
+    projectId: 'physioprimedatabase',
+    authDomain: 'physioprimedatabase.firebaseapp.com',
+    databaseURL: 'https://physioprimedatabase-default-rtdb.firebaseio.com',
+    storageBucket: 'physioprimedatabase.firebasestorage.app',
+    measurementId: 'G-39E33E15KC',
   );
 }

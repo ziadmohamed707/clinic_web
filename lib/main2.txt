@@ -13,7 +13,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:uuid/uuid.dart'; // Not used in the provided code, but kept if it was intended.
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';

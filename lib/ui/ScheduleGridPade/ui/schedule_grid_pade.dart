@@ -1,26 +1,25 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:html' as html;
 import 'dart:ui';
 
+import 'package:geocoding/geocoding.dart';
 import 'package:physioone/core/app_consts/app_consts.dart';
-import 'package:physioone/main.dart';
 import 'package:physioone/ui/ClientListPage/ui/client_list_page.dart';
 import 'package:physioone/ui/FinancialManagementPage/ui/financial_management_page.dart';
 import 'package:physioone/ui/LoginPage/bloc/auth_bloc.dart';
 import 'package:physioone/ui/LoginPage/bloc/auth_event.dart';
 import 'package:physioone/ui/LoginPage/models/user_model.dart';
-import 'package:physioone/ui/LoginPage/repository/auth_repository.dart';
 import 'package:physioone/ui/LoginPage/ui/login_page.dart';
 import 'package:physioone/ui/ManageDoctorPage/ui/manage_doctors_page.dart';
 import 'package:physioone/ui/ManageUserPage/ui/manage_users_page.dart';
-// import 'package:physioone/ui/UserProfilePage/ui/user_profile_page.dart';
+import 'package:physioone/main.dart';
 import 'package:physioone/ui/PackagesPage/ui/packages_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:html' as html;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:physioone/ui/ScheduleGridPade/ui/user_profile_page.dart';
@@ -29,13 +28,16 @@ import 'package:physioone/ui/billPaymentScreen/ui/bill_notification_screen.dart'
 import 'package:physioone/ui/billPaymentScreen/ui/system_services_page.dart';
 import 'package:physioone/hr_system/ui/hr_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:physioone/hr_system/ui/location_service.dart';
+import 'package:physioone/core/app_consts/location_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:physioone/hr_system/services/employee_service.dart';
+import 'package:physioone/hr_system/model/employee_model.dart';
+import 'package:collection/collection.dart';
 
 class ScheduleGridScreen extends StatefulWidget {
   final UserModel user;
 
-  const ScheduleGridScreen({Key? key, required this.user}) : super(key: key);
+  const ScheduleGridScreen({super.key, required this.user});
 
   @override
   _ScheduleGridScreenState createState() => _ScheduleGridScreenState();
@@ -43,7 +45,6 @@ class ScheduleGridScreen extends StatefulWidget {
 
 class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
   List<Map<String, dynamic>> _availableDoctorsForSelectedDate = [];
-  List<Map<String, dynamic>> _selectedClientPackages = [];
 
   late Box box;
   DateTime selectedDate = DateTime.now();
@@ -60,16 +61,23 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
   StreamSubscription? _clientsSubscription;
   StreamSubscription? _doctorsSubscription;
 
+  StreamSubscription? _employeeSubscription;
+
   Timer? _timer;
   Timer? _locationTimer;
   DateTime _currentTime = DateTime.now();
   String _storageUsage = 'Loading...';
   final LocationService _locationService = LocationService();
   String _currentLocationStatus = 'Fetching location...';
+  final EmployeeService _employeeService = EmployeeService();
   Position? _currentPosition;
   bool _isFetchingLocation = false;
 
   final ScrollController _horizontalScrollController = ScrollController();
+
+  // متغيرات Check-In/Out
+  EmployeeModel? _currentUserEmployee;
+  bool _isProcessingCheckIn = false;
 
   @override
   void initState() {
@@ -83,12 +91,11 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       }
     });
     _listenToStorageUsage();
-    // Fetch location immediately on load
     _getCurrentLocation();
-    // Then, set up a timer to fetch it again every minute
     _locationTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       if (mounted) _getCurrentLocation();
     });
+    _listenToCurrentUserEmployee();
   }
 
   @override
@@ -98,9 +105,183 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     _doctorsSubscription?.cancel();
     _timer?.cancel();
     _locationTimer?.cancel();
+    _employeeSubscription?.cancel();
     _horizontalScrollController.dispose();
     super.dispose();
   }
+
+  // ============================================================
+  // دوال Check-In / Check-Out
+  // ============================================================
+
+  bool get _hasCheckedInToday {
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final todayRecord = _currentUserEmployee?.attendance.firstWhereOrNull(
+      (record) => record['date'] == today,
+    );
+    return todayRecord != null && todayRecord['checkIn'] != '';
+  }
+
+  bool get _hasCheckedOutToday {
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final todayRecord = _currentUserEmployee?.attendance.firstWhereOrNull(
+      (record) => record['date'] == today,
+    );
+    return todayRecord != null && todayRecord['checkOut'] != '';
+  }
+
+  void _listenToCurrentUserEmployee() {
+    _employeeSubscription = _employeeService
+        .employeeStream(widget.user.id!)
+        .listen(
+          (employee) {
+            if (mounted) {
+              setState(() {
+                _currentUserEmployee = employee;
+              });
+            }
+          },
+          onError: (e) {
+            print("Failed to listen to current user's employee data: $e");
+          },
+        );
+  }
+
+  Future<void> _handleCheckIn(
+    BuildContext context,
+    EmployeeModel employee,
+  ) async {
+    if (_isProcessingCheckIn) return;
+    setState(() => _isProcessingCheckIn = true);
+
+    try {
+      // 1. التحقق من الموقع
+      final (isWithinRadius, messageOrError) =
+          await _locationService.isUserWithinClinicRadius();
+
+      if (!isWithinRadius) {
+        throw Exception(messageOrError);
+      }
+
+      // 2. تسجيل الحضور
+      final now = DateTime.now();
+      final checkInTime = TimeOfDay.fromDateTime(now);
+      final officialStartTime = TimeOfDay(hour: 9, minute: 0);
+
+      String status = 'Present';
+      if (checkInTime.hour > officialStartTime.hour ||
+          (checkInTime.hour == officialStartTime.hour &&
+              checkInTime.minute > officialStartTime.minute)) {
+        status = 'Late';
+      }
+
+      final userPosition = await _locationService.getCurrentPosition();
+      final newAttendanceRecord = {
+        'date': DateFormat('yyyy-MM-dd').format(now),
+        'checkIn':
+            '${checkInTime.hour.toString().padLeft(2, '0')}:${checkInTime.minute.toString().padLeft(2, '0')}',
+        'checkOut': '',
+        'status': status,
+        'checkInLocation': {
+          'latitude': userPosition.latitude,
+          'longitude': userPosition.longitude,
+        },
+      };
+
+      final updatedAttendance = List<Map<String, dynamic>>.from(
+        employee.attendance,
+      );
+      updatedAttendance.add(newAttendanceRecord);
+
+      final updatedEmployee = employee.copyWith(attendance: updatedAttendance);
+      await _employeeService.updateEmployee(updatedEmployee);
+
+      if (mounted) {
+        _showSnackBar(
+          '✅ Checked in successfully! Status: $status',
+          Colors.green,
+        );
+        setState(() {}); // تحديث حالة الأزرار
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar(
+          '❌ Check-in failed: ${e.toString().replaceFirst("Exception: ", "")}',
+          Colors.red,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessingCheckIn = false);
+      }
+    }
+  }
+
+  Future<void> _handleCheckOut(
+    BuildContext context,
+    EmployeeModel employee,
+  ) async {
+    if (_isProcessingCheckIn) return;
+    setState(() => _isProcessingCheckIn = true);
+
+    try {
+      final now = DateTime.now();
+      final checkOutTime = TimeOfDay.fromDateTime(now);
+      final todayString = DateFormat('yyyy-MM-dd').format(now);
+
+      final updatedAttendance = List<Map<String, dynamic>>.from(
+        employee.attendance,
+      );
+      final todayRecordIndex = updatedAttendance.indexWhere(
+        (rec) => rec['date'] == todayString,
+      );
+
+      if (todayRecordIndex == -1) {
+        throw Exception('Cannot check out without checking in first.');
+      }
+
+      if (updatedAttendance[todayRecordIndex]['checkOut'] != '') {
+        _showSnackBar(
+          '✅ You already checked out at ${updatedAttendance[todayRecordIndex]['checkOut']}',
+          Colors.orange,
+        );
+        setState(() => _isProcessingCheckIn = false);
+        return;
+      }
+
+      final userPosition = await _locationService.getCurrentPosition();
+
+      updatedAttendance[todayRecordIndex]['checkOut'] =
+          '${checkOutTime.hour.toString().padLeft(2, '0')}:${checkOutTime.minute.toString().padLeft(2, '0')}';
+      updatedAttendance[todayRecordIndex]['checkOutLocation'] = {
+        'latitude': userPosition.latitude,
+        'longitude': userPosition.longitude,
+      };
+
+      final updatedEmployee = employee.copyWith(attendance: updatedAttendance);
+      await _employeeService.updateEmployee(updatedEmployee);
+
+      if (mounted) {
+        _showSnackBar('✅ Checked out successfully!', Colors.blue);
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar(
+          '❌ Check-out failed: ${e.toString().replaceFirst("Exception: ", "")}',
+          Colors.red,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessingCheckIn = false);
+      }
+    }
+  }
+
+  // ============================================================
+  // باقي دوال ScheduleGridScreen (بنفس الكود السابق)
+  // ============================================================
 
   Future<void> _initializeData() async {
     try {
@@ -112,7 +293,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       _doctorsCollection = _firestore.collection('doctors');
       _doctorProfileCollection = _firestore.collection('employees');
       await _syncAndListen();
-      // await _uploadOfflineData(); // This can be intensive, consider a more targeted sync strategy
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
@@ -123,19 +303,16 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
   Future<void> _syncAndListen() async {
     final clientBox = Hive.box('clients');
 
-    // Initial sync for clients
     final clientSnapshot = await _clientsCollection.get();
     for (var doc in clientSnapshot.docs) {
       clientBox.put(doc.id, doc.data());
     }
 
-    // Initial sync for appointments
     final appointmentSnapshot = await _appointmentsCollection.get();
     for (var doc in appointmentSnapshot.docs) {
       box.put(doc.id, doc.data());
     }
 
-    // Initial sync for doctors
     final doctorSnapshot = await _doctorsCollection.get();
     for (var doc in doctorSnapshot.docs) {
       _doctorsBox.put(doc.id, doc.data());
@@ -145,12 +322,10 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     doctorProfileSnapshot.docs.forEach((doc) {
       _doctorsBox.put(doc.id, doc.data());
     });
-    
-    // Now, set up listeners for real-time updates
+
     _clientsSubscription = _clientsCollection.snapshots().listen((snapshot) {
       for (var change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.removed) {
-          // The ID inside the document is now the source of truth
           final data = change.doc.data() as Map<dynamic, dynamic>?;
           clientBox.delete(data?['id']?.toString() ?? change.doc.id);
         } else {
@@ -169,14 +344,12 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
           final data = change.doc.data() as Map<dynamic, dynamic>?;
           box.delete(data?['id']?.toString() ?? change.doc.id);
         } else {
-          // The key for appointments is composite, so we don't change it.
           box.put(change.doc.id, change.doc.data() as Map<dynamic, dynamic>);
         }
       }
       if (mounted) setState(() {});
     }, onError: (e) => _showSnackBar('Appointment sync error: $e', Colors.red));
 
-    // Listen to doctors
     _doctorsSubscription = _doctorsCollection.snapshots().listen((snapshot) {
       for (var change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.removed) {
@@ -217,42 +390,90 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
 
   Future<void> _getCurrentLocation() async {
     if (_isFetchingLocation) return;
-    if (mounted) {
-      setState(() {
-        _isFetchingLocation = true;
-        _currentLocationStatus = 'Fetching location...';
-      });
-    }
+    setState(() {
+      _isFetchingLocation = true;
+      _currentLocationStatus = 'Fetching location...';
+    });
 
     try {
-      final hasPermission = await _handleLocationPermission();
-      if (!hasPermission) {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
         setState(() {
-          _currentLocationStatus = 'Location permission not granted.';
+          _currentLocationStatus =
+              'GPS services are disabled. Please enable them.';
           _isFetchingLocation = false;
         });
         return;
       }
-      final position = await Geolocator.getCurrentPosition();
-      final address = await _locationService.getAddressFromPosition(position);
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _currentLocationStatus =
+                'Location permission denied. Please grant permission.';
+            _isFetchingLocation = false;
+          });
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _currentLocationStatus =
+              'Location permission permanently denied. Please enable from settings.';
+          _isFetchingLocation = false;
+        });
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 10),
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Location request timed out.');
+        },
+      );
+
+      String address = 'Unknown location';
+      try {
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+        if (placemarks.isNotEmpty) {
+          address =
+              placemarks.first.street ??
+              '${placemarks.first.locality}, ${placemarks.first.country}';
+        }
+      } catch (geocodeError) {
+        address =
+            'Lat: ${position.latitude.toStringAsFixed(4)}, Lng: ${position.longitude.toStringAsFixed(4)}';
+      }
+
       if (mounted) {
         setState(() {
           _currentLocationStatus =
               '$address (Accuracy: ${position.accuracy.toStringAsFixed(0)}m)';
           _currentPosition = position;
+          _isFetchingLocation = false;
         });
       }
     } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      if (errorMsg.contains('permission')) {
+        errorMsg = 'Location permission denied. Please grant permission.';
+      } else if (errorMsg.contains('service')) {
+        errorMsg = 'Location services are disabled. Please enable GPS.';
+      }
       if (mounted) {
         setState(() {
-          _currentLocationStatus =
-              'Location unavailable. ${e.toString().replaceFirst("Exception: ", "")}';
+          _currentLocationStatus = 'Location unavailable. $errorMsg';
           _currentPosition = null;
+          _isFetchingLocation = false;
         });
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isFetchingLocation = false);
       }
     }
   }
@@ -289,7 +510,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
             });
           }
         } else {
-          // Handle case where the document doesn't exist
           if (mounted) {
             setState(() {
               _storageUsage = 'N/A';
@@ -300,35 +520,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       onError:
           (e) => _showSnackBar('Storage usage sync error: $e', Colors.orange),
     );
-  }
-
-  Future<void> _uploadOfflineData() async {
-    try {
-      // Upload offline appointments
-      final appointmentBox = Hive.box('appointments');
-      for (var key in appointmentBox.keys) {
-        final appointmentData = Map<String, dynamic>.from(
-          appointmentBox.get(key) as Map,
-        );
-        final doc = await _appointmentsCollection.doc(key.toString()).get();
-        if (!doc.exists) {
-          await _saveAppointmentToFirestore(key.toString(), appointmentData);
-        }
-      }
-
-      // Upload offline clients
-      final clientBox = Hive.box('clients');
-      for (var key in clientBox.keys) {
-        if (key == 'lastId') continue;
-        final clientData = Map<String, dynamic>.from(clientBox.get(key) as Map);
-        final doc = await _clientsCollection.doc(key.toString()).get();
-        if (!doc.exists) {
-          await _updateClientData(key.toString(), clientData);
-        }
-      }
-    } catch (e) {
-      _showSnackBar('Error uploading offline data: $e', Colors.orange);
-    }
   }
 
   Future<void> _saveAppointmentToFirestore(
@@ -363,7 +554,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     }
   }
 
-  // Fix in _loadAvailableDoctorsForSelectedDate method
   void _loadAvailableDoctorsForSelectedDate() {
     final allDoctorsFromBox =
         _doctorsBox.values
@@ -372,9 +562,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
 
     Iterable<Map<String, dynamic>> doctorsFilteredByRole;
     if (widget.user.role == 'doctor') {
-      // Fix: Use the correct field for doctor identification
       doctorsFilteredByRole = allDoctorsFromBox.where((doctor) {
-        // Try matching by both ID and name to be safe
         return doctor['id']?.toString() == widget.user.id?.toString() ||
             doctor['name']?.toString() == widget.user.username?.toString() ||
             doctor['name']?.toString() == widget.user.id?.toString();
@@ -431,7 +619,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       setState(() {
         selectedDate = picked;
       });
-      _loadAvailableDoctorsForSelectedDate(); // Reload doctors for the new date
+      _loadAvailableDoctorsForSelectedDate();
     }
   }
 
@@ -440,7 +628,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     final screenWidth = size.width;
 
     if (screenWidth < 600) {
-      return size.height * 0.13; // 12% من ارتفاع الشاشة
+      return size.height * 0.13;
     } else if (screenWidth < 1200) {
       return size.height * 0.13;
     } else {
@@ -512,12 +700,10 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
             ? patientPart
             : (status == 'cancelled' ? 'Cancelled' : 'Available');
 
-    // 🔹 Responsive sizes
     final width = MediaQuery.of(context).size.width;
     double cellWidth, iconSize, titleFontSize, subFontSize, padding, spacing;
 
     if (width < 600) {
-      // Mobile
       cellWidth = MediaQuery.of(context).size.width * 0.12;
       iconSize = 14;
       titleFontSize = 11;
@@ -525,7 +711,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       padding = 8;
       spacing = 2;
     } else if (width < 1024) {
-      // Tablet
       cellWidth = MediaQuery.of(context).size.width * 0.12;
       iconSize = 16;
       titleFontSize = 13;
@@ -533,7 +718,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       padding = 10;
       spacing = 4;
     } else if (width < 1600) {
-      // Laptop
       cellWidth = MediaQuery.of(context).size.width * 0.12;
       iconSize = 18;
       titleFontSize = 14;
@@ -541,7 +725,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       padding = 8;
       spacing = 2;
     } else {
-      // Large screens
       cellWidth = MediaQuery.of(context).size.width * 0.12;
       iconSize = 20;
       titleFontSize = 14;
@@ -600,7 +783,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                 fontWeight: FontWeight.w600,
                 fontSize: titleFontSize,
                 overflow: TextOverflow.clip,
-
                 color:
                     status == 'booked'
                         ? Colors.green.shade800
@@ -623,7 +805,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-
               SizedBox(height: spacing),
               Text(
                 remainingSessionsDisplay,
@@ -657,9 +838,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
         ),
       ),
       onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ), // Cannot be const
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       hoverColor: Colors.white.withOpacity(0.1),
     );
   }
@@ -691,11 +870,13 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50, // Moved from outer scaffold
+      backgroundColor: Colors.grey.shade50,
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Top Bar
+            // ============================================================
+            // Top Bar (مع أزرار Check-In/Out)
+            // ============================================================
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
               child: ClipRRect(
@@ -781,6 +962,125 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                         ),
                         Row(
                           children: [
+                            // ✅ Check-In Button
+                            if (_currentUserEmployee != null) ...[
+                              if (!_hasCheckedInToday)
+                                ElevatedButton.icon(
+                                  onPressed:
+                                      _isProcessingCheckIn
+                                          ? null
+                                          : () => _handleCheckIn(
+                                            context,
+                                            _currentUserEmployee!,
+                                          ),
+                                  icon:
+                                      _isProcessingCheckIn
+                                          ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                          : const Icon(
+                                            Icons.login_rounded,
+                                            size: 18,
+                                          ),
+                                  label: Text(
+                                    _isProcessingCheckIn
+                                        ? 'Processing...'
+                                        : 'Check In',
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                    elevation: 5,
+                                    shadowColor: Colors.green.withOpacity(0.5),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(width: 8),
+                              // ✅ Check-Out Button
+                              if (_hasCheckedInToday && !_hasCheckedOutToday)
+                                ElevatedButton.icon(
+                                  onPressed:
+                                      _isProcessingCheckIn
+                                          ? null
+                                          : () => _handleCheckOut(
+                                            context,
+                                            _currentUserEmployee!,
+                                          ),
+                                  icon:
+                                      _isProcessingCheckIn
+                                          ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                          : const Icon(
+                                            Icons.logout_rounded,
+                                            size: 18,
+                                          ),
+                                  label: Text(
+                                    _isProcessingCheckIn
+                                        ? 'Processing...'
+                                        : 'Check Out',
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    foregroundColor: Colors.white,
+                                    elevation: 5,
+                                    shadowColor: Colors.redAccent.withOpacity(
+                                      0.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(width: 8),
+                              // ✅ Status Badge
+                              if (_hasCheckedInToday)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        _hasCheckedOutToday
+                                            ? Colors.grey.withOpacity(0.2)
+                                            : Colors.green.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color:
+                                          _hasCheckedOutToday
+                                              ? Colors.grey.withOpacity(0.3)
+                                              : Colors.green.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _hasCheckedOutToday
+                                        ? '✅ Completed'
+                                        : '🟢 Checked In',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          _hasCheckedOutToday
+                                              ? Colors.grey[600]
+                                              : Colors.green[700],
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(width: 8),
+                            ],
                             const SizedBox(width: 8),
                             ElevatedButton.icon(
                               onPressed: () => _selectDate(context),
@@ -807,30 +1107,27 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
               ),
             ),
 
+            // ============================================================
+            // باقي المحتوى (Stats Cards & Schedule Grid)
+            // ============================================================
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   double width = constraints.maxWidth;
-
-                  // 🔹 Breakpoints
                   int crossAxisCount;
                   double childAspectRatio;
 
                   if (width < 600) {
-                    // موبايل
                     crossAxisCount = 2;
                     childAspectRatio = 2.0;
                   } else if (width < 1024) {
-                    // تابلت
                     crossAxisCount = 2;
                     childAspectRatio = 2.2;
                   } else if (width < 1600) {
-                    // لابتوب
                     crossAxisCount = 4;
                     childAspectRatio = 2;
                   } else {
-                    // شاشات كبيرة
                     crossAxisCount = 4;
                     childAspectRatio = 2.5;
                   }
@@ -891,8 +1188,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
             // Schedule Grid
             IntrinsicHeight(
               child: Container(
-                // Cannot be const
-                width: double.infinity, // Cannot be const
+                width: double.infinity,
                 margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -918,7 +1214,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                         color: Colors.grey.shade800,
                       ),
                     ),
-                    const SizedBox(height: 20), // This was missing a const
+                    const SizedBox(height: 20),
                     Expanded(
                       child: Scrollbar(
                         controller: _horizontalScrollController,
@@ -929,37 +1225,12 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                           child: SingleChildScrollView(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Header Row
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 100,
-                                    height: _getCellHeight(context) * 0.5,
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).primaryColor.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        'Time',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).primaryColor,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  ..._availableDoctorsForSelectedDate.map((
-                                    doctor,
-                                  ) {
-                                    return Container(
-                                      width: 175,
-                                      margin: EdgeInsets.only(right: 8),
+                              children: [
+                                // Header Row
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 100,
                                       height: _getCellHeight(context) * 0.5,
                                       decoration: BoxDecoration(
                                         color: Theme.of(
@@ -969,31 +1240,24 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          doctor['name'] as String,
+                                          'Time',
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             color:
                                                 Theme.of(context).primaryColor,
-                                            fontSize: 16,
                                           ),
                                           textAlign: TextAlign.center,
-                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                    );
-                                  }),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              // Time Slots
-                              ...(AppConsts.timeSlots).map((timeSlot) {
-                                return Container(
-                                  margin: EdgeInsets.only(bottom: 8),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 100,
-                                        height: _getCellHeight(context),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    ..._availableDoctorsForSelectedDate.map((
+                                      doctor,
+                                    ) {
+                                      return Container(
+                                        width: 175,
+                                        margin: EdgeInsets.only(right: 8),
+                                        height: _getCellHeight(context) * 0.5,
                                         decoration: BoxDecoration(
                                           color: Theme.of(
                                             context,
@@ -1001,46 +1265,83 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
-                                          border: Border.all(
-                                            color: Colors.grey.shade300,
-                                          ),
                                         ),
                                         child: Center(
                                           child: Text(
-                                            timeSlot,
+                                            doctor['name'] as String,
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 12,
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).primaryColor,
+                                              fontSize: 16,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                // Time Slots
+                                ...(AppConsts.timeSlots).map((timeSlot) {
+                                  return Container(
+                                    margin: EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 100,
+                                          height: _getCellHeight(context),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(
+                                              context,
+                                            ).primaryColor.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.grey.shade300,
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              timeSlot,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      ..._availableDoctorsForSelectedDate.map((
-                                        doctor,
-                                      ) {
-                                        return Container(
-                                          height: _getCellHeight(context),
-                                          width: 175,
-                                          margin: EdgeInsets.only(right: 8),
-                                          child: _buildAppointmentCell(
-                                            timeSlot: timeSlot,
-                                            doctorData: doctor,
-                                            formattedDateForKey:
-                                                formattedDateForKey,
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            ],
+                                        const SizedBox(width: 16),
+                                        ..._availableDoctorsForSelectedDate.map(
+                                          (doctor) {
+                                            return Container(
+                                              height: _getCellHeight(context),
+                                              width: 175,
+                                              margin: EdgeInsets.only(right: 8),
+                                              child: _buildAppointmentCell(
+                                                timeSlot: timeSlot,
+                                                doctorData: doctor,
+                                                formattedDateForKey:
+                                                    formattedDateForKey,
+                                              ),
+                                            );
+                                          },
+                                        ).toList(),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    )
                   ],
                 ),
               ),
@@ -1067,8 +1368,10 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     );
   }
 
-  /// Builds the sidebar content.
-  /// Reused by the desktop fixed sidebar and the mobile drawer.
+  // ============================================================
+  // باقي دوال ScheduleGridScreen (بدون تغيير)
+  // ============================================================
+
   Widget _buildSidebarContent() {
     return Container(
       width: 300,
@@ -1083,20 +1386,15 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.only(
-          topRight: Radius.circular(24), // Cannot be const
+          topRight: Radius.circular(24),
           bottomRight: Radius.circular(24),
         ),
         boxShadow: [
-          BoxShadow(
-            color: Colors.white,
-            blurRadius: 20, // Cannot be
-            offset: Offset(5, 0),
-          ),
+          BoxShadow(color: Colors.white, blurRadius: 20, offset: Offset(5, 0)),
         ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.only(
-          // Cannot be const
           topRight: Radius.circular(24),
           bottomRight: Radius.circular(24),
         ),
@@ -1104,7 +1402,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
             decoration: BoxDecoration(
-              // Cannot be const
               gradient: LinearGradient(
                 colors: [
                   Colors.white.withOpacity(0.1),
@@ -1122,11 +1419,9 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
               children: [
                 // Header Section
                 Padding(
-                  // Cannot be const
                   padding: const EdgeInsets.all(32),
                   child: Column(
                     children: [
-                      // Logo Container
                       TweenAnimationBuilder(
                         duration: Duration(milliseconds: 1500),
                         tween: Tween<double>(begin: 0, end: 1),
@@ -1137,7 +1432,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                               width: 90,
                               height: 90,
                               decoration: BoxDecoration(
-                                // Cannot be const
                                 shape: BoxShape.circle,
                                 gradient: RadialGradient(
                                   colors: [
@@ -1178,7 +1472,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                         },
                       ),
                       SizedBox(height: 20),
-                      // App Name
                       ShaderMask(
                         shaderCallback:
                             (bounds) => LinearGradient(
@@ -1199,7 +1492,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                         ),
                       ),
                       SizedBox(height: 12),
-                      // User Badge
                       InkWell(
                         onTap: () {
                           Navigator.push(
@@ -1288,11 +1580,9 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                     ],
                   ),
                 ),
-
                 // Navigation Menu
                 Expanded(
                   child: ListView(
-                    // Cannot be const
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     children: [
                       if (widget.user.role == 'admin' ||
@@ -1348,9 +1638,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                         ),
                       ],
                       if (widget.user.role == 'admin') ...[
-                        // Cannot be const
                         const SizedBox(height: 20),
-                        // Admin Section Divider
                         Row(
                           children: [
                             Expanded(
@@ -1486,7 +1774,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                         ),
                       ],
                       SizedBox(height: 40),
-                      // Logout Button
                       _buildLogoutButton(),
                       SizedBox(height: 20),
                       Padding(
@@ -1525,7 +1812,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      // Cannot be const
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
@@ -1535,7 +1821,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
         final bool isMobile = constraints.maxWidth < mobileBreakpoint;
 
         if (isMobile) {
-          // Mobile Layout
           return Scaffold(
             appBar: AppBar(
               title: Text(AppConsts.appName),
@@ -1545,14 +1830,11 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
             body: _buildMainContent(),
           );
         } else {
-          // Desktop/Tablet Layout
           return Scaffold(
             backgroundColor: Colors.grey.shade50,
             body: Row(
               children: [
-                // Sidebar
                 _buildSidebarContent(),
-                // Main Content
                 Expanded(child: _buildMainContent()),
               ],
             ),
@@ -1562,22 +1844,18 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     );
   }
 
-  /// Fetches a list of clients specifically for the logged-in doctor.
   List<Map<String, dynamic>> _getClientsForDoctor(String doctorId) {
     final clientBox = Hive.box('clients');
     final appointmentBox = Hive.box('appointments');
     final clientIds = <String>{};
 
-    // Find all unique client IDs from appointments with this doctor
     for (var key in appointmentBox.keys) {
       final appointment = appointmentBox.get(key);
 
       if (appointment is Map && appointment['status'] == 'booked') {
-        // Check multiple possible doctor identification fields
         final appointmentDoctorId = appointment['doctorId']?.toString();
         final appointmentDoctorName = appointment['doctor']?.toString();
 
-        // Match by doctorId or doctor name
         if ((appointmentDoctorId != null && appointmentDoctorId == doctorId) ||
             (appointmentDoctorName != null &&
                 appointmentDoctorName == doctorId)) {
@@ -1588,7 +1866,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       }
     }
 
-    // Retrieve the full client data for each unique ID
     final clients =
         clientIds
             .map((id) => clientBox.get(id))
@@ -1599,7 +1876,10 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     return clients;
   }
 
-  // Dialog and interaction methods
+  // ============================================================
+  // دوال الحوارات (Edit Cell, Add Client, WhatsApp, Cancel)
+  // ============================================================
+
   void _editCell(String timeSlot, Map<String, dynamic> doctorData) async {
     final String formattedDateForKey = DateFormat(
       'yyyy-MM-dd',
@@ -1663,7 +1943,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Client Search
                       TextField(
                         controller: searchController,
                         decoration: const InputDecoration(
@@ -1695,7 +1974,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      // Client List
                       SizedBox(
                         height: 200,
                         child: ListView.builder(
@@ -1768,8 +2046,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                             ),
                           ),
                       ],
-
-                      // Service Type
                       DropdownButtonFormField<String>(
                         value: dialogSelectedServiceType,
                         hint: Text('Select Service Type'),
@@ -1829,9 +2105,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
                         ),
                       ],
                       const SizedBox(height: 16),
-                      // Doctor
                       TextField(
-                        // Cannot be const
                         controller: doctorController,
                         decoration: InputDecoration(labelText: 'Doctor'),
                       ),
@@ -1841,7 +2115,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
               ),
               actions: [
                 TextButton(
-                  // Cannot be const
                   onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('Cancel'),
                 ),
@@ -1955,7 +2228,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       },
     ).then((saved) {
       if (saved == true) {
-        setState(() {}); // Refresh UI
+        setState(() {});
       }
     });
   }
@@ -1972,14 +2245,12 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       'EEEE, dd MMMM yyyy',
     ).format(selectedDate);
 
-    // Using the pre-formatted message from AppConsts
     final String message = AppConsts.getWhatsAppMessage(
       clientName,
       formattedDate,
       timeSlot,
     );
 
-    // Ensure phone number is in international format for wa.me link
     final String internationalPhone =
         phone.startsWith('+') ? phone : '+2$phone';
 
@@ -2008,7 +2279,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       context: dialogContext,
       builder:
           (confirmDialogContext) => AlertDialog(
-            // Cannot be const
             title: const Text('Cancel Appointment'),
             content: const Text(
               'Are you sure you want to cancel this appointment? This will return a session if it was part of a package.',
@@ -2020,9 +2290,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(confirmDialogContext, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                ), // Cannot be
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: Text('Yes, Cancel'),
               ),
             ],
@@ -2032,7 +2300,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     if (confirmRemove != true) return;
 
     try {
-      // If it was a package session, increment the remaining sessions
       final String? clientId = existing['clientId']?.toString();
       final String? packageNameUsed = existing['packageNameUsed'] as String?;
 
@@ -2066,7 +2333,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
         }
       }
 
-      // Update the appointment to 'cancelled'
       final Map<String, dynamic> cancelledData = Map<String, dynamic>.from(
         existing as Map,
       );
@@ -2076,7 +2342,7 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       await _saveAppointmentToFirestore(key, cancelledData);
 
       if (dialogContext.mounted) {
-        Navigator.pop(dialogContext, true); // Close the edit dialog
+        Navigator.pop(dialogContext, true);
       }
     } catch (e) {
       _showSnackBar('Error canceling appointment: $e', Colors.red);
@@ -2093,14 +2359,12 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            // Cannot be const
             title: Text(
               'Add New Client',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             content: SingleChildScrollView(
               child: Column(
-                // Cannot be const
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
@@ -2203,7 +2467,6 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => PackagesPage()));
   }
 
-  // Helper Methods
   Widget _buildModernSidebarItem({
     required IconData icon,
     required String title,
@@ -2218,11 +2481,10 @@ class _ScheduleGridScreenState extends State<ScheduleGridScreen> {
         return Transform.scale(
           scale: scale,
           child: GestureDetector(
-            onTapDown: (_) => setState(() {}), // This might not be needed
-            onTapUp: (_) => setState(() {}), // This might not be needed
-            onTap: onTap, // Cannot be const
+            onTapDown: (_) => setState(() {}),
+            onTapUp: (_) => setState(() {}),
+            onTap: onTap,
             child: Container(
-              // Cannot be const
               padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),

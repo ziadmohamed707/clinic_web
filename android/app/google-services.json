@@ -1,21 +1,22 @@
 {
   "project_info": {
-    "project_number": "419143087841",
-    "project_id": "physioone-74446",
-    "storage_bucket": "physioone-74446.firebasestorage.app"
+    "project_number": "817174772167",
+    "firebase_url": "https://physioprimedatabase-default-rtdb.firebaseio.com",
+    "project_id": "physioprimedatabase",
+    "storage_bucket": "physioprimedatabase.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:419143087841:android:6b9e5d627b23913bab29a0",
+        "mobilesdk_app_id": "1:817174772167:android:e50d2171cb635fdfb801e2",
         "android_client_info": {
-          "package_name": "com.example.clinic_management_system"
+          "package_name": "com.physioone.clinic"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBFiwl54gxomWJoG2pES6qcsQv0v3_xboI"
+          "current_key": "AIzaSyC-LjuWORu7a9pFpcipRqj3rRO9tMlbFv4"
         }
       ],
       "services": {

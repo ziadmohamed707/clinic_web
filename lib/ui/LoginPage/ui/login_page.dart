@@ -1,14 +1,12 @@
 import 'package:physioone/core/app_consts/app_consts.dart';
-import 'package:physioone/main.dart';
-import 'package:physioone/ui/HomePage/ui/home_page.dart';
 import 'package:physioone/ui/LoginPage/bloc/auth_bloc.dart';
 import 'package:physioone/ui/LoginPage/bloc/auth_event.dart';
 import 'package:physioone/ui/LoginPage/bloc/auth_state.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
   @override
   Widget build(BuildContext context) {
     return _LoginView();
@@ -120,22 +118,11 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
     }
   }
 
-  void _toggleMode() {
-    setState(() {
-      _isRegistering = !_isRegistering;
-    });
-
-    _slideController.reset();
-    _slideController.forward();
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final theme = Theme.of(context);
     final isDesktop = size.width > 1200;
-    final isTablet = size.width > 768 && size.width <= 1200;
-    final isMobile = size.width <= 768;
 
     return Scaffold(
       body: Container(
@@ -151,8 +138,6 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
           builder: (context, state) {
             if (isDesktop) {
               return _buildDesktopLayout(state, theme);
-            } else if (isTablet) {
-              return _buildTabletLayout(state, theme);
             } else {
               return _buildMobileLayout(state, theme);
             }
@@ -168,9 +153,9 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          theme.primaryColor.withOpacity(0.05),
+          theme.primaryColor.withAlpha(12),
           Colors.white,
-          theme.primaryColor.withOpacity(0.08),
+          theme.primaryColor.withAlpha(20),
           Colors.white,
         ],
         stops: const [0.0, 0.4, 0.7, 1.0],
@@ -189,10 +174,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  theme.primaryColor,
-                  theme.primaryColor.withOpacity(0.8),
-                ],
+                colors: [theme.primaryColor, theme.primaryColor.withAlpha(204)],
               ),
             ),
             child: _buildBrandingSection(theme, isDesktop: true),
@@ -216,44 +198,6 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildTabletLayout(AuthState state, ThemeData theme) {
-    return SingleChildScrollView(
-      controller: _scrollController,
-      child: Container(
-        constraints: BoxConstraints(
-          minHeight: MediaQuery.of(context).size.height,
-        ),
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Column(
-            children: [
-              Container(
-                height: 300,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      theme.primaryColor,
-                      theme.primaryColor.withOpacity(0.8),
-                    ],
-                  ),
-                ),
-                child: _buildBrandingSection(theme),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(48),
-                child: Center(
-                  child: _buildLoginForm(state, theme, maxWidth: 500),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -300,10 +244,10 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
                 Container(
                   padding: const EdgeInsets.all(20), // Slightly reduced padding
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withAlpha(38),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withAlpha(77),
                       width: 1,
                     ),
                   ),
@@ -332,7 +276,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
                   'Professional Physiotherapy Management',
                   style: TextStyle(
                     fontSize: isDesktop ? 16 : 14, // Reduced font size
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withAlpha(230),
                     fontWeight: FontWeight.w300,
                   ),
                   textAlign: TextAlign.center,
@@ -342,7 +286,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
                   Container(
                     padding: const EdgeInsets.all(20), // Reduced padding
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withAlpha(26),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -387,10 +331,10 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: theme.primaryColor.withOpacity(0.1),
+            color: theme.primaryColor.withAlpha(26),
             shape: BoxShape.circle,
             border: Border.all(
-              color: theme.primaryColor.withOpacity(0.3),
+              color: theme.primaryColor.withAlpha(77),
               width: 2,
             ),
           ),
@@ -435,7 +379,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: Card(
           elevation: 8,
-          shadowColor: theme.primaryColor.withOpacity(0.2),
+          shadowColor: theme.primaryColor.withAlpha(51),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -738,7 +682,7 @@ class _LoginViewState extends State<_LoginView> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(12),
             ),
             elevation: 2,
-            shadowColor: theme.primaryColor.withOpacity(0.3),
+            shadowColor: theme.primaryColor.withAlpha(77),
           ).copyWith(
             overlayColor: MaterialStateProperty.resolveWith<Color?>((
               Set<MaterialState> states,

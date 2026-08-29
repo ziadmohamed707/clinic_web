@@ -4,8 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart'; // Import hive_flutter
 import 'package:physioone/core/app_consts/app_consts.dart';
 import 'package:physioone/core/app_colors.dart';
-
 import 'package:physioone/firebase_options.dart';
+
 import 'package:physioone/ui/HomePage/ui/home_page.dart';
 import 'package:physioone/ui/LoginPage/ui/login_page.dart';
 import 'package:physioone/ui/LoginPage/bloc/auth_bloc.dart';
@@ -87,7 +87,7 @@ class MyApp extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(
-                  color: AppColors.primary, 
+                  color: AppColors.primary,
                   width: 2,
                 ),
               ),

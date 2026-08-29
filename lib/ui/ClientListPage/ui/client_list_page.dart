@@ -3,17 +3,17 @@ import 'package:physioone/ui/PackagesPage/ui/packages_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-// ignore: deprecated_member_use
 import 'dart:html' as html;
 
 class ClientListPage extends StatefulWidget {
+  const ClientListPage({super.key});
+
   @override
   _ClientListPageState createState() => _ClientListPageState();
 }
 
 class _ClientListPageState extends State<ClientListPage> {
   final clientBox = Hive.box('clients');
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _filteredClients = [];
 
@@ -44,7 +44,6 @@ class _ClientListPageState extends State<ClientListPage> {
               final client = Map<String, dynamic>.from(
                 clientBox.get(key) as Map? ?? {},
               );
-              if (client == null) return null;
               return {'key': key, 'client': client};
             })
             .where((item) => item != null)
@@ -445,7 +444,7 @@ class _ClientListPageState extends State<ClientListPage> {
 
                   try {
                     await clientBox.put(clientKey, updatedClient);
-                    await _firestore
+                    await FirebaseFirestore.instance
                         .collection('clients')
                         .doc(clientKey)
                         .set(updatedClient);
@@ -510,7 +509,10 @@ class _ClientListPageState extends State<ClientListPage> {
     if (confirm == true) {
       try {
         await clientBox.delete(clientKey);
-        await _firestore.collection('clients').doc(clientKey).delete();
+        await FirebaseFirestore.instance
+            .collection('clients')
+            .doc(clientKey)
+            .delete();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Client deleted successfully.'),
@@ -519,7 +521,7 @@ class _ClientListPageState extends State<ClientListPage> {
         );
         return true;
       } catch (e) {
-        print('Error deleting client: $e');
+        debugPrint('Error deleting client: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to delete client: $e'),

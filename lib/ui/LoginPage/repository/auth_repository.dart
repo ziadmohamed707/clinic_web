@@ -2,8 +2,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:physioone/ui/LoginPage/models/user_model.dart';
-import 'package:uuid/uuid.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthRepository {
   final FirebaseFirestore _firestore;
@@ -57,7 +57,7 @@ class AuthRepository {
       await clearUserSession();
     }
 
-    print('User signed in: ${userModel.username}');
+    debugPrint('User signed in: ${userModel.username}');
     return userModel;
   }
 
@@ -73,7 +73,7 @@ class AuthRepository {
       // Update current user stream
       _currentUserController.add(null);
 
-      print('User signed out successfully');
+      debugPrint('User signed out successfully');
     } catch (e) {
       throw Exception('Failed to sign out: $e');
     }
@@ -89,8 +89,8 @@ class AuthRepository {
 
       // You can clear specific keys instead of entire boxes
       // await Hive.box('someBox').delete('userSpecificKey');
-    } catch (e) {
-      print('Error clearing user-specific data: $e');
+    } catch (e) { 
+      debugPrint('Error clearing user-specific data: $e');
     }
   }
 
@@ -99,18 +99,18 @@ class AuthRepository {
     try {
       final box = Hive.box(_userSessionBoxName);
       await box.put(_currentUserKey, user.toMap());
-      print('User session saved: ${user.username}');
+      debugPrint('User session saved: ${user.username}');
     } catch (e) {
-      print('Error saving user session: $e');
+      debugPrint('Error saving user session: $e');
       throw Exception('Failed to save user session: $e');
     }
   }
 
   /// Get user session from Hive
   UserModel? getUserSession() {
-    try {
-      if (!Hive.isBoxOpen(_userSessionBoxName)) {
-        print('UserSession box is not open');
+    try { 
+      if (!Hive.isBoxOpen(_userSessionBoxName)) { 
+        debugPrint('UserSession box is not open');
         return null;
       }
 
@@ -122,8 +122,8 @@ class AuthRepository {
         return UserModel.fromMap(userMap, userMap['docId'] ?? '');
       }
       return null;
-    } catch (e) {
-      print('Error getting user session: $e');
+    } catch (e) { 
+      debugPrint('Error getting user session: $e');
       return null;
     }
   }
@@ -133,9 +133,9 @@ class AuthRepository {
     try {
       final box = Hive.box(_userSessionBoxName);
       await box.delete(_currentUserKey);
-      print('User session cleared');
+      debugPrint('User session cleared');
     } catch (e) {
-      print('Error clearing user session: $e');
+      debugPrint('Error clearing user session: $e');
       throw Exception('Failed to clear user session: $e');
     }
   }
@@ -146,12 +146,12 @@ class AuthRepository {
       final user = getUserSession();
       if (user != null) {
         _currentUserController.add(user);
-        print('Session loaded from Hive: ${user.username}');
+        debugPrint('Session loaded from Hive: ${user.username}');
       } else {
-        print('No saved session found.');
+        debugPrint('No saved session found.');
       }
     } catch (e) {
-      print('Error initializing app data: $e');
+      debugPrint('Error initializing app data: $e');
     }
   }
 

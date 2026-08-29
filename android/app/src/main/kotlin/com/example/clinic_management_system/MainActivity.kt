@@ -1,4 +1,4 @@
-package com.example.clinic_management_system
+package package="com.physioone.clinic"
 
 import io.flutter.embedding.android.FlutterActivity
 

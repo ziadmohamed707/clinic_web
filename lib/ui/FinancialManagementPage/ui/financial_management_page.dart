@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 class FinancialManagementPage extends StatefulWidget {
-  const FinancialManagementPage({Key? key}) : super(key: key);
+  const FinancialManagementPage({super.key});
 
   @override
   _FinancialManagementScreenState createState() =>
@@ -32,14 +31,19 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
   String _selectedType = 'Payment';
   String _selectedPaymentMethod = 'Cash';
   final List<String> _entryTypes = ['Payment', 'Purchase', 'Bill'];
-  final List<String> _paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Check'];
+  final List<String> _paymentMethods = [
+    'Cash',
+    'Card',
+    'Bank Transfer',
+    'Check',
+  ];
   final List<String> _categories = [
     'Physio Payment',
     'Supplies',
     'Rent',
     'Utilities',
     'Equipment',
-    'Other'
+    'Other',
   ];
 
   @override
@@ -51,7 +55,7 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
   Future<void> _initializeHive() async {
     try {
       setState(() => _isLoading = true);
-      
+
       // Check if box is already open
       if (Hive.isBoxOpen('financialEntries')) {
         _financialBox = Hive.box('financialEntries');
@@ -59,12 +63,12 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
         // Open the box if not already open
         _financialBox = await Hive.openBox('financialEntries');
       }
-      
+
       setState(() => _isInitialized = true);
       _loadDailyEntries();
       _syncFromFirestore();
     } catch (e) {
-      print('Error initializing Hive: $e');
+      debugPrint('Error initializing Hive: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -89,23 +93,26 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
 
   void _loadDailyEntries() {
     if (_financialBox == null || !_isInitialized) return;
-    
+
     final formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    _dailyEntries = _financialBox!.values
-        .where((entry) {
-          // Ensure entry is a Map and has a 'date' key before accessing it
-          return entry is Map && entry['date'] == formattedDate;
-        })
-        .map((dynamicEntry) => Map<String, dynamic>.from(dynamicEntry as Map)) // Explicitly create Map<String, dynamic>
-        .toList();
-    
+    _dailyEntries =
+        _financialBox!.values
+            .where((entry) {
+              // Ensure entry is a Map and has a 'date' key before accessing it
+              return entry is Map && entry['date'] == formattedDate;
+            })
+            .map(
+              (dynamicEntry) => Map<String, dynamic>.from(dynamicEntry as Map),
+            ) // Explicitly create Map<String, dynamic>
+            .toList();
+
     // Sort entries by timestamp
     _dailyEntries.sort((a, b) {
       final aTime = DateTime.tryParse(a['timestamp'] ?? '') ?? DateTime.now();
       final bTime = DateTime.tryParse(b['timestamp'] ?? '') ?? DateTime.now();
       return bTime.compareTo(aTime);
     });
-    
+
     if (mounted) {
       setState(() {});
     }
@@ -130,9 +137,9 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
     try {
       await _firestore
           .collection('financial_entries')
-          .doc(entry['id'])
+          .doc(entry['id'] as String)
           .set(entry);
-      print('Entry synced to Firestore: ${entry['id']}');
+      debugPrint('Entry synced to Firestore: ${entry['id']}');
     } catch (e) {
       print('Error syncing to Firestore: $e');
       // Show error to user
@@ -149,14 +156,15 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
 
   Future<void> _syncFromFirestore() async {
     if (_financialBox == null || !_isInitialized) return;
-    
+
     try {
       setState(() => _isLoading = true);
-      
-      final snapshot = await _firestore
-          .collection('financial_entries')
-          .orderBy('timestamp', descending: true)
-          .get();
+
+      final snapshot =
+          await _firestore
+              .collection('financial_entries')
+              .orderBy('timestamp', descending: true)
+              .get();
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
@@ -165,11 +173,11 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
           await _financialBox!.put(data['id'], data);
         }
       }
-      
+
       _loadDailyEntries();
-      print('Synced ${snapshot.docs.length} entries from Firestore');
+      debugPrint('Synced ${snapshot.docs.length} entries from Firestore');
     } catch (e) {
-      print('Error syncing from Firestore: $e');
+      debugPrint('Error syncing from Firestore: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -187,19 +195,16 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
 
   Future<void> _deleteEntry(String entryId) async {
     if (_financialBox == null || !_isInitialized) return;
-    
+
     try {
       // Delete from local storage
       await _financialBox!.delete(entryId);
-      
+
       // Delete from Firestore
-      await _firestore
-          .collection('financial_entries')
-          .doc(entryId)
-          .delete();
-      
+      await _firestore.collection('financial_entries').doc(entryId).delete();
+
       _loadDailyEntries();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -209,7 +214,7 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
         );
       }
     } catch (e) {
-      print('Error deleting entry: $e');
+      debugPrint('Error deleting entry: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -232,189 +237,212 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
 
   void _addEntry() {
     _clearForm();
-    
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Financial Entry'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Entry Type Dropdown
-              DropdownButtonFormField<String>(
-                value: _selectedType,
-                decoration: const InputDecoration(
-                  labelText: 'Entry Type',
-                  border: OutlineInputBorder(),
-                ),
-                items: _entryTypes.map((type) {
-                  return DropdownMenuItem(value: type, child: Text(type));
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedType = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Add Financial Entry'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Entry Type Dropdown
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedType,
+                    decoration: const InputDecoration(
+                      labelText: 'Entry Type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items:
+                        _entryTypes.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedType = value!;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-              // Description TextField
-              TextField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description/Notes',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 16),
+                  // Description TextField
+                  TextField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description/Notes',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 16),
 
-              // Amount TextField
-              TextField(
-                controller: _amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Amount (LE)',
-                  border: OutlineInputBorder(),
-                  prefixText: '\$ ',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                  // Amount TextField
+                  TextField(
+                    controller: _amountController,
+                    decoration: const InputDecoration(
+                      labelText: 'Amount (LE)',
+                      border: OutlineInputBorder(),
+                      prefixText: '\$ ',
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,2}'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Category Dropdown
+                  DropdownButtonFormField<String>(
+                    initialValue:
+                        _categories.contains(_categoryController.text)
+                            ? _categoryController.text
+                            : _categories.first,
+                    decoration: const InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(),
+                    ),
+                    items:
+                        _categories.map((category) {
+                          return DropdownMenuItem(
+                            value: category,
+                            child: Text(category),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      _categoryController.text = value!;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Client TextField (for payments)
+                  if (_selectedType == 'Payment') ...[
+                    TextField(
+                      controller: _clientController,
+                      decoration: const InputDecoration(
+                        labelText: 'Client Name',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Payment Method Dropdown
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedPaymentMethod,
+                    decoration: const InputDecoration(
+                      labelText: 'Payment Method',
+                      border: OutlineInputBorder(),
+                    ),
+                    items:
+                        _paymentMethods.map((method) {
+                          return DropdownMenuItem(
+                            value: method,
+                            child: Text(method),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      _selectedPaymentMethod = value!;
+                    },
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
-
-              // Category Dropdown
-              DropdownButtonFormField<String>(
-                value: _categories.contains(_categoryController.text) 
-                    ? _categoryController.text 
-                    : _categories.first,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
-                ),
-                items: _categories.map((category) {
-                  return DropdownMenuItem(value: category, child: Text(category));
-                }).toList(),
-                onChanged: (value) {
-                  _categoryController.text = value!;
-                },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () async {
+                  if (_descriptionController.text.isEmpty ||
+                      _amountController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please fill in description and amount'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
 
-              // Client TextField (for payments)
-              if (_selectedType == 'Payment') ...[
-                TextField(
-                  controller: _clientController,
-                  decoration: const InputDecoration(
-                    labelText: 'Client Name',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
+                  final amount = double.tryParse(_amountController.text);
+                  if (amount == null || amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter a valid amount'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
 
-              // Payment Method Dropdown
-              DropdownButtonFormField<String>(
-                value: _selectedPaymentMethod,
-                decoration: const InputDecoration(
-                  labelText: 'Payment Method',
-                  border: OutlineInputBorder(),
-                ),
-                items: _paymentMethods.map((method) {
-                  return DropdownMenuItem(value: method, child: Text(method));
-                }).toList(),
-                onChanged: (value) {
-                  _selectedPaymentMethod = value!;
+                  final newEntry = {
+                    'id': const Uuid().v4(),
+                    'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
+                    'type': _selectedType,
+                    'description': _descriptionController.text.trim(),
+                    'amount': amount,
+                    'category':
+                        _categoryController.text.isNotEmpty
+                            ? _categoryController.text
+                            : _categories.first,
+                    'clientId': _clientController.text.trim(),
+                    'paymentMethod': _selectedPaymentMethod,
+                    'timestamp': DateTime.now().toIso8601String(),
+                  };
+
+                  try {
+                    // Check if box is initialized
+                    if (_financialBox == null || !_isInitialized) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Storage not initialized. Please wait...',
+                          ),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Save to local storage
+                    await _financialBox!.put(newEntry['id'], newEntry);
+
+                    // Sync to Firestore
+                    await _syncToFirestore(
+                      Map<String, dynamic>.from(newEntry),
+                    ); // Ensure correct map type
+
+                    _loadDailyEntries();
+                    Navigator.pop(context);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Entry added successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error adding entry: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 },
+                child: const Text('Save Entry'),
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (_descriptionController.text.isEmpty || 
-                  _amountController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please fill in description and amount'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              final amount = double.tryParse(_amountController.text);
-              if (amount == null || amount <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter a valid amount'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              final newEntry = {
-                'id': const Uuid().v4(),
-                'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
-                'type': _selectedType,
-                'description': _descriptionController.text.trim(),
-                'amount': amount,
-                'category': _categoryController.text.isNotEmpty 
-                    ? _categoryController.text 
-                    : _categories.first,
-                'clientId': _clientController.text.trim(),
-                'paymentMethod': _selectedPaymentMethod,
-                'timestamp': DateTime.now().toIso8601String(),
-              };
-
-              try {
-                // Check if box is initialized
-                if (_financialBox == null || !_isInitialized) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Storage not initialized. Please wait...'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                  return;
-                }
-
-                // Save to local storage
-                await _financialBox!.put(newEntry['id'], newEntry);
-                
-                // Sync to Firestore
-                await _syncToFirestore(Map<String, dynamic>.from(newEntry)); // Ensure correct map type
-                
-                _loadDailyEntries();
-                Navigator.pop(context);
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Entry added successfully'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error adding entry: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Save Entry'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -428,180 +456,203 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Financial Entry'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Same form fields as _addEntry but with pre-filled values
-              DropdownButtonFormField<String>(
-                value: _selectedType,
-                decoration: const InputDecoration(
-                  labelText: 'Entry Type',
-                  border: OutlineInputBorder(),
-                ),
-                items: _entryTypes.map((type) {
-                  return DropdownMenuItem(value: type, child: Text(type));
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedType = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Edit Financial Entry'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Same form fields as _addEntry but with pre-filled values
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedType,
+                    decoration: const InputDecoration(
+                      labelText: 'Entry Type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items:
+                        _entryTypes.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedType = value!;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-              TextField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description/Notes',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 16),
+                  TextField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description/Notes',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 16),
 
-              TextField(
-                controller: _amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Amount (\$)',
-                  border: OutlineInputBorder(),
-                  prefixText: '\$ ',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                  TextField(
+                    controller: _amountController,
+                    decoration: const InputDecoration(
+                      labelText: 'Amount (\$)',
+                      border: OutlineInputBorder(),
+                      prefixText: '\$ ',
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,2}'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  DropdownButtonFormField<String>(
+                    initialValue:
+                        _categories.contains(_categoryController.text)
+                            ? _categoryController.text
+                            : _categories.first,
+                    decoration: const InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(),
+                    ),
+                    items:
+                        _categories.map((category) {
+                          return DropdownMenuItem(
+                            value: category,
+                            child: Text(category),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      _categoryController.text = value!;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  if (_selectedType == 'Payment') ...[
+                    TextField(
+                      controller: _clientController,
+                      decoration: const InputDecoration(
+                        labelText: 'Client Name',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedPaymentMethod,
+                    decoration: const InputDecoration(
+                      labelText: 'Payment Method',
+                      border: OutlineInputBorder(),
+                    ),
+                    items:
+                        _paymentMethods.map((method) {
+                          return DropdownMenuItem(
+                            value: method,
+                            child: Text(method),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      _selectedPaymentMethod = value!;
+                    },
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
-
-              DropdownButtonFormField<String>(
-                value: _categories.contains(_categoryController.text) 
-                    ? _categoryController.text 
-                    : _categories.first,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
-                ),
-                items: _categories.map((category) {
-                  return DropdownMenuItem(value: category, child: Text(category));
-                }).toList(),
-                onChanged: (value) {
-                  _categoryController.text = value!;
-                },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () async {
+                  if (_descriptionController.text.isEmpty ||
+                      _amountController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please fill in description and amount'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
 
-              if (_selectedType == 'Payment') ...[
-                TextField(
-                  controller: _clientController,
-                  decoration: const InputDecoration(
-                    labelText: 'Client Name',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
+                  final amount = double.tryParse(_amountController.text);
+                  if (amount == null || amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter a valid amount'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
 
-              DropdownButtonFormField<String>(
-                value: _selectedPaymentMethod,
-                decoration: const InputDecoration(
-                  labelText: 'Payment Method',
-                  border: OutlineInputBorder(),
-                ),
-                items: _paymentMethods.map((method) {
-                  return DropdownMenuItem(value: method, child: Text(method));
-                }).toList(),
-                onChanged: (value) {
-                  _selectedPaymentMethod = value!;
+                  final updatedEntry = {
+                    ...entry,
+                    'type': _selectedType,
+                    'description': _descriptionController.text.trim(),
+                    'amount': amount,
+                    'category':
+                        _categoryController.text.isNotEmpty
+                            ? _categoryController.text
+                            : _categories.first,
+                    'clientId': _clientController.text.trim(),
+                    'paymentMethod': _selectedPaymentMethod,
+                    'updatedAt': DateTime.now().toIso8601String(),
+                  };
+
+                  try {
+                    // Check if box is initialized
+                    if (_financialBox == null || !_isInitialized) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Storage not initialized. Please wait...',
+                          ),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Update local storage
+                    await _financialBox!.put(updatedEntry['id'], updatedEntry);
+
+                    // Sync to Firestore
+                    await _syncToFirestore(
+                      Map<String, dynamic>.from(updatedEntry),
+                    ); // Ensure correct map type
+
+                    _loadDailyEntries();
+                    Navigator.pop(context);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Entry updated successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error updating entry: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 },
+                child: const Text('Update Entry'),
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (_descriptionController.text.isEmpty || 
-                  _amountController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please fill in description and amount'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              final amount = double.tryParse(_amountController.text);
-              if (amount == null || amount <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter a valid amount'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              final updatedEntry = {
-                ...entry,
-                'type': _selectedType,
-                'description': _descriptionController.text.trim(),
-                'amount': amount,
-                'category': _categoryController.text.isNotEmpty 
-                    ? _categoryController.text 
-                    : _categories.first,
-                'clientId': _clientController.text.trim(),
-                'paymentMethod': _selectedPaymentMethod,
-                'updatedAt': DateTime.now().toIso8601String(),
-              };
-
-              try {
-                // Check if box is initialized
-                if (_financialBox == null || !_isInitialized) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Storage not initialized. Please wait...'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                  return;
-                }
-
-                // Update local storage
-                await _financialBox!.put(updatedEntry['id'], updatedEntry);
-                
-                // Sync to Firestore
-                await _syncToFirestore(Map<String, dynamic>.from(updatedEntry)); // Ensure correct map type
-                
-                _loadDailyEntries();
-                Navigator.pop(context);
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Entry updated successfully'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error updating entry: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Update Entry'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -645,199 +696,272 @@ class _FinancialManagementScreenState extends State<FinancialManagementPage> {
           ],
         ],
       ),
-      body: !_isInitialized
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Initializing storage...'),
-                ],
-              ),
-            )
-          : _isLoading
+      body:
+          !_isInitialized
+              ? const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Initializing storage...'),
+                  ],
+                ),
+              )
+              : _isLoading
               ? const Center(child: CircularProgressIndicator())
               : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    'Entries for ${DateFormat('EEE, MMM d, yyyy').format(_selectedDate)}',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Daily Summary Card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Daily Summary:', 
-                              style: Theme.of(context).textTheme.titleMedium),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Payments: ${totalPayments.toStringAsFixed(2)} LE',
-                                      style: const TextStyle(color: Colors.green)),
-                                  Text('Purchases: ${totalPurchases.toStringAsFixed(2)} LE',
-                                      style: const TextStyle(color: Colors.orange)),
-                                  Text('Bills: ${totalBills.toStringAsFixed(2)} LE',
-                                      style: const TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text('Net: ${(totalPayments - totalPurchases - totalBills).toStringAsFixed(2) } LE',
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Entries for ${DateFormat('EEE, MMM d, yyyy').format(_selectedDate)}',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Daily Summary Card
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Daily Summary:',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Payments: ${totalPayments.toStringAsFixed(2)} LE',
+                                      style: const TextStyle(
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Purchases: ${totalPurchases.toStringAsFixed(2)} LE',
+                                      style: const TextStyle(
+                                        color: Colors.orange,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Bills: ${totalBills.toStringAsFixed(2)} LE',
+                                      style: const TextStyle(color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'Net: ${(totalPayments - totalPurchases - totalBills).toStringAsFixed(2)} LE',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: (totalPayments - totalPurchases - totalBills) >= 0 
-                                            ? Colors.green 
-                                            : Colors.red,
-                                      )),
-                                  Text('${_dailyEntries.length} entries'),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
+                                        color:
+                                            (totalPayments -
+                                                        totalPurchases -
+                                                        totalBills) >=
+                                                    0
+                                                ? Colors.green
+                                                : Colors.red,
+                                      ),
+                                    ),
+                                    Text('${_dailyEntries.length} entries'),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  Text('Entries:', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  
-                  // Entries List
-                  Expanded(
-                    child: _dailyEntries.isEmpty
-                        ? const Center(child: Text('No entries for this date.'))
-                        : ListView.builder(
-                            itemCount: _dailyEntries.length,
-                            itemBuilder: (context, index) {
-                              final entry = _dailyEntries[index];
-                              final amount = (entry['amount'] as num?)?.toDouble() ?? 0.0;
-                              
-                              Color typeColor = Colors.grey;
-                              IconData typeIcon = Icons.monetization_on;
-                              
-                              switch (entry['type']) {
-                                case 'Payment':
-                                  typeColor = Colors.green;
-                                  typeIcon = Icons.payment;
-                                  break;
-                                case 'Purchase':
-                                  typeColor = Colors.orange;
-                                  typeIcon = Icons.shopping_cart;
-                                  break;
-                                case 'Bill':
-                                  typeColor = Colors.red;
-                                  typeIcon = Icons.receipt;
-                                  break;
-                              }
+                    const SizedBox(height: 16),
 
-                              return Card(
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: typeColor.withOpacity(0.1),
-                                    child: Icon(typeIcon, color: typeColor),
-                                  ),
-                                  title: Text(
-                                    '${entry['type']}: ${entry['description']}',
-                                    style: const TextStyle(fontWeight: FontWeight.w500),
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Amount: ${amount.toStringAsFixed(2)} LE',
-                                          style: TextStyle(
-                                            color: typeColor,
-                                            fontWeight: FontWeight.bold,
-                                          )),
-                                      if (entry['category'] != null)
-                                        Text('Category: ${entry['category']}'),
-                                      if (entry['clientId'] != null && entry['clientId'].toString().isNotEmpty)
-                                        Text('Client: ${entry['clientId']}'),
-                                      if (entry['paymentMethod'] != null)
-                                        Text('Method: ${entry['paymentMethod']}'),
-                                    ],
-                                  ),
-                                  trailing: PopupMenuButton(
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(
-                                        value: 'edit',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.edit),
-                                            SizedBox(width: 8),
-                                            Text('Edit'),
-                                          ],
+                    Text(
+                      'Entries:',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Entries List
+                    Expanded(
+                      child:
+                          _dailyEntries.isEmpty
+                              ? const Center(
+                                child: Text('No entries for this date.'),
+                              )
+                              : ListView.builder(
+                                itemCount: _dailyEntries.length,
+                                itemBuilder: (context, index) {
+                                  final entry = _dailyEntries[index];
+                                  final amount =
+                                      (entry['amount'] as num?)?.toDouble() ??
+                                      0.0;
+
+                                  Color typeColor = Colors.grey;
+                                  IconData typeIcon = Icons.monetization_on;
+
+                                  switch (entry['type']) {
+                                    case 'Payment':
+                                      typeColor = Colors.green;
+                                      typeIcon = Icons.payment;
+                                      break;
+                                    case 'Purchase':
+                                      typeColor = Colors.orange;
+                                      typeIcon = Icons.shopping_cart;
+                                      break;
+                                    case 'Bill':
+                                      typeColor = Colors.red;
+                                      typeIcon = Icons.receipt;
+                                      break;
+                                  }
+
+                                  return Card(
+                                    child: ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: typeColor.withOpacity(
+                                          0.1,
+                                        ),
+                                        child: Icon(typeIcon, color: typeColor),
+                                      ),
+                                      title: Text(
+                                        '${entry['type']}: ${entry['description']}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
-                                      const PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete, color: Colors.red),
-                                            SizedBox(width: 8),
-                                            Text('Delete', style: TextStyle(color: Colors.red)),
-                                          ],
-                                        ),
+                                      subtitle: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Amount: ${amount.toStringAsFixed(2)} LE',
+                                            style: TextStyle(
+                                              color: typeColor,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          if (entry['category'] != null)
+                                            Text(
+                                              'Category: ${entry['category']}',
+                                            ),
+                                          if (entry['clientId'] != null &&
+                                              entry['clientId']
+                                                  .toString()
+                                                  .isNotEmpty)
+                                            Text(
+                                              'Client: ${entry['clientId']}',
+                                            ),
+                                          if (entry['paymentMethod'] != null)
+                                            Text(
+                                              'Method: ${entry['paymentMethod']}',
+                                            ),
+                                        ],
                                       ),
-                                    ],
-                                    onSelected: (value) {
-                                      if (value == 'edit') {
-                                        _editEntry(entry);
-                                      } else if (value == 'delete') {
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text('Delete Entry'),
-                                            content: const Text('Are you sure you want to delete this entry?'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(context),
-                                                child: const Text('Cancel'),
-                                              ),
-                                              ElevatedButton(
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-                                                  _deleteEntry(entry['id']);
-                                                },
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.red,
+                                      trailing: PopupMenuButton(
+                                        itemBuilder:
+                                            (context) => [
+                                              const PopupMenuItem(
+                                                value: 'edit',
+                                                child: Row(
+                                                  children: [
+                                                    Icon(Icons.edit),
+                                                    SizedBox(width: 8),
+                                                    Text('Edit'),
+                                                  ],
                                                 ),
-                                                child: const Text('Delete'),
+                                              ),
+                                              const PopupMenuItem(
+                                                value: 'delete',
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.delete,
+                                                      color: Colors.red,
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      'Delete',
+                                                      style: TextStyle(
+                                                        color: Colors.red,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ],
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  ),
-                                  onTap: () => _editEntry(entry),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
+                                        onSelected: (value) {
+                                          if (value == 'edit') {
+                                            _editEntry(entry);
+                                          } else if (value == 'delete') {
+                                            showDialog(
+                                              context: context,
+                                              builder:
+                                                  (context) => AlertDialog(
+                                                    title: const Text(
+                                                      'Delete Entry',
+                                                    ),
+                                                    content: const Text(
+                                                      'Are you sure you want to delete this entry?',
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed:
+                                                            () => Navigator.pop(
+                                                              context,
+                                                            ),
+                                                        child: const Text(
+                                                          'Cancel',
+                                                        ),
+                                                      ),
+                                                      ElevatedButton(
+                                                        onPressed: () {
+                                                          Navigator.pop(
+                                                            context,
+                                                          );
+                                                          _deleteEntry(
+                                                            entry['id'],
+                                                          );
+                                                        },
+                                                        style:
+                                                            ElevatedButton.styleFrom(
+                                                              backgroundColor:
+                                                                  Colors.red,
+                                                            ),
+                                                        child: const Text(
+                                                          'Delete',
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      onTap: () => _editEntry(entry),
+                                    ),
+                                  );
+                                },
+                              ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-      floatingActionButton: _isInitialized ? FloatingActionButton(
-        onPressed: _addEntry,
-        tooltip: 'Add Financial Entry',
-        child: const Icon(Icons.add),
-      ) : null,
+      floatingActionButton:
+          _isInitialized
+              ? FloatingActionButton(
+                onPressed: _addEntry,
+                tooltip: 'Add Financial Entry',
+                child: const Icon(Icons.add),
+              )
+              : null,
     );
   }
 }
